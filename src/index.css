@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 body {
-  font-family: "Tajawal", sans-serif;
+  font-family: "Cairo", sans-serif;
 }
 
 input:-webkit-autofill,
@@ -11,4 +11,20 @@ input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
   -webkit-box-shadow: 0 0 0 40px white inset !important;
+}
+
+@media (max-width: 640px) {
+  .dark table thead tr th:first-of-type,
+  .dark table tbody tr td:first-of-type {
+    position: sticky;
+    right: 0;
+    background: #1f2937;
+  }
+  table thead tr th:first-of-type,
+  table tbody tr td:first-of-type {
+    position: sticky;
+    right: 0;
+    background: #fff;
+    color: #000;
+  }
 }

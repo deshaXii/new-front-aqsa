@@ -4,23 +4,18 @@ import useAuthStore from "../auth/authStore.js";
 import Notification from "../../components/Notification.jsx";
 import Button from "../../components/Button.jsx";
 import { useNavigate } from "react-router-dom";
-import RepairFilterBar from "../../components/RepairFilterBar.jsx";
 
 const RepairsPage = () => {
   const [repairs, setRepairs] = useState([]);
-  const [technicians, setTechnicians] = useState([]);
   const [error, setError] = useState("");
-
-  // 🔹 فلاتر البحث
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [technicianFilter, setTechnicianFilter] = useState("");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
-  const [sortBy, setSortBy] = useState("newest");
-
-  const { token } = useAuthStore();
+  const { token, user } = useAuthStore();
   const navigate = useNavigate();
+
+  // بحث وفلاتر
+  const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [sortField, setSortField] = useState("createdAt");
+  const [sortOrder, setSortOrder] = useState("desc");
 
   const fetchRepairs = async () => {
     try {
@@ -33,79 +28,58 @@ const RepairsPage = () => {
     }
   };
 
-  const fetchTechnicians = async () => {
+  const handleStatusChange = async (id, newStatus) => {
     try {
-      const { data } = await axios.get(
-        "http://localhost:5000/api/technicians",
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+      await axios.put(
+        `http://localhost:5000/api/repairs/${id}`,
+        { status: newStatus },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-      setTechnicians(data);
-    } catch {
-      // تجاهل الخطأ لو فشل
+      fetchRepairs();
+    } catch (err) {
+      alert("فشل في تحديث الحالة");
     }
   };
 
-  const { user } = useAuthStore();
-
-  useEffect(() => {
-    fetchRepairs();
-    user?.role === "admin" && fetchTechnicians();
-  }, []);
-
-  // 🔹 تطبيق البحث والتصفية والفرز
-  const filteredRepairs = repairs
-    .filter((r) => {
-      const matchSearch =
-        r.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        r.phone?.includes(searchTerm) ||
-        r.deviceType?.toLowerCase().includes(searchTerm.toLowerCase());
-
-      const matchStatus = statusFilter ? r.status === statusFilter : true;
-      const matchTechnician = technicianFilter
-        ? r.technician?._id === technicianFilter
-        : true;
-
-      const createdAt = new Date(r.createdAt);
-      const matchDateFrom = dateFrom ? createdAt >= new Date(dateFrom) : true;
-      const matchDateTo = dateTo ? createdAt <= new Date(dateTo) : true;
-
-      return (
-        matchSearch &&
-        matchStatus &&
-        matchTechnician &&
-        matchDateFrom &&
-        matchDateTo
-      );
-    })
-    .sort((a, b) => {
-      if (sortBy === "newest")
-        return new Date(b.createdAt) - new Date(a.createdAt);
-      if (sortBy === "oldest")
-        return new Date(a.createdAt) - new Date(b.createdAt);
-      if (sortBy === "priceHigh") return b.price - a.price;
-      if (sortBy === "priceLow") return a.price - b.price;
-      if (sortBy === "name")
-        return a.customerName.localeCompare(b.customerName);
-      return 0;
-    });
   const handleDelete = async (id) => {
     if (!window.confirm("هل أنت متأكد من حذف هذه الصيانة؟")) return;
-
     try {
       await axios.delete(`http://localhost:5000/api/repairs/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setRepairs((prev) => prev.filter((r) => r._id !== id));
-    } catch {
-      setError("فشل في حذف الصيانة");
+      fetchRepairs();
+    } catch (err) {
+      alert("فشل في حذف الصيانة");
     }
   };
+
+  useEffect(() => {
+    fetchRepairs();
+  }, []);
+
+  // تطبيق البحث + الفلاتر + الفرز
+  const filteredRepairs = repairs
+    .filter((r) =>
+      [r.customerName, r.deviceType, r.phone]
+        .join(" ")
+        .toLowerCase()
+        .includes(search.toLowerCase())
+    )
+    .filter((r) => (filterStatus ? r.status === filterStatus : true))
+    .sort((a, b) => {
+      if (sortField === "profit") {
+        return sortOrder === "asc" ? a.profit - b.profit : b.profit - a.profit;
+      }
+      return sortOrder === "asc"
+        ? new Date(a[sortField]) - new Date(b[sortField])
+        : new Date(b[sortField]) - new Date(a[sortField]);
+    });
+
   return (
     <div className="p-4">
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
         <h2 className="text-xl font-bold">قائمة الصيانات</h2>
+
         {user?.permissions?.addRepair && (
           <Button onClick={() => navigate("/repairs/new")}>
             إضافة صيانة جديدة
@@ -113,23 +87,46 @@ const RepairsPage = () => {
         )}
       </div>
 
-      {error && <Notification type="error" message={error} />}
+      {/* شريط البحث والفلاتر */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        <input
+          type="text"
+          placeholder="بحث باسم العميل / الجهاز / الهاتف"
+          className="border px-2 py-1 rounded"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="border px-2 py-1 rounded"
+        >
+          <option value="">كل الحالات</option>
+          <option value="في الانتظار">في الانتظار</option>
+          <option value="جاري العمل">جاري العمل</option>
+          <option value="مكتمل">مكتمل</option>
+          <option value="تم التسليم">تم التسليم</option>
+          <option value="مرفوض">مرفوض</option>
+        </select>
+        <select
+          value={sortField}
+          onChange={(e) => setSortField(e.target.value)}
+          className="border px-2 py-1 rounded"
+        >
+          <option value="createdAt">تاريخ الإدخال</option>
+          <option value="profit">الربح</option>
+        </select>
+        <select
+          value={sortOrder}
+          onChange={(e) => setSortOrder(e.target.value)}
+          className="border px-2 py-1 rounded"
+        >
+          <option value="desc">تنازلي</option>
+          <option value="asc">تصاعدي</option>
+        </select>
+      </div>
 
-      <RepairFilterBar
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
-        technicianFilter={technicianFilter}
-        setTechnicianFilter={setTechnicianFilter}
-        dateFrom={dateFrom}
-        setDateFrom={setDateFrom}
-        dateTo={dateTo}
-        setDateTo={setDateTo}
-        sortBy={sortBy}
-        setSortBy={setSortBy}
-        technicians={technicians}
-      />
+      {error && <Notification type="error" message={error} />}
 
       <div className="overflow-auto">
         <table className="min-w-full bg-white dark:bg-gray-800 border text-sm">
@@ -137,79 +134,83 @@ const RepairsPage = () => {
             <tr>
               <th className="p-2 border">اسم العميل</th>
               <th className="p-2 border">نوع الجهاز</th>
-              <th className="p-2 border">نوع العطل</th>
+              <th className="p-2 border">العطل</th>
               <th className="p-2 border">لون الجهاز</th>
               <th className="p-2 border">رقم الهاتف</th>
               <th className="p-2 border">السعر</th>
               <th className="p-2 border">الحالة</th>
               <th className="p-2 border">الفني</th>
-              <th className="p-2 border">اسم المستلم</th>
-              <th className="p-2 border">تاريخ الاستلام</th>
-              <th className="p-2 border">ملاحظات</th>
-              <th className="p-2 border">تاريخ التسليم</th>
+              <th className="p-2 border">المستلم</th>
               <th className="p-2 border">قطع الغيار</th>
-              <th className="p-2 border">الإجراءات</th>
+              <th className="p-2 border">إجراءات</th>
             </tr>
           </thead>
-
           <tbody>
-            {repairs.map((r) => (
-              <tr key={r._id} className="align-top">
+            {filteredRepairs.map((r) => (
+              <tr key={r._id} className="text-center">
                 <td className="p-2 border">{r.customerName}</td>
                 <td className="p-2 border">{r.deviceType}</td>
-                <td className="p-2 border">{r.issue || "—"}</td>
-                <td className="p-2 border">{r.color || "—"}</td>
+                <td className="p-2 border">{r.issue || "-"}</td>
+                <td className="p-2 border">{r.color || "-"}</td>
                 <td className="p-2 border">{r.phone}</td>
                 <td className="p-2 border">{r.price} ج</td>
-                <td className="p-2 border">{r.status}</td>
-                <td className="p-2 border">{r.technician?.name || "—"}</td>
-                <td className="p-2 border">{r.recipient?.name || "—"}</td>
                 <td className="p-2 border">
-                  {r.createdAt
-                    ? new Date(r.createdAt).toLocaleDateString()
-                    : "—"}
-                </td>
-                <td className="p-2 border">{r.notes || "—"}</td>
-                <td className="p-2 border">
-                  {r.status === "تم التسليم" || r.status === "مكتمل"
-                    ? new Date(r.updatedAt).toLocaleDateString()
-                    : "—"}
-                </td>
-                <td className="p-2 border">
-                  {r.parts?.length > 0 ? (
-                    <ul className="list-disc pl-4">
-                      {r.parts.slice(0, 2).map((p, idx) => (
-                        <li key={idx}>
-                          {p.name} - {p.cost} ج
-                        </li>
-                      ))}
-                      {r.parts.length > 2 && (
-                        <li>+{r.parts.length - 2} أخرى...</li>
-                      )}
-                    </ul>
+                  {user?.permissions?.editRepair ? (
+                    <select
+                      value={r.status}
+                      onChange={(e) =>
+                        handleStatusChange(r._id, e.target.value)
+                      }
+                      className="border rounded px-2 py-1"
+                    >
+                      <option>في الانتظار</option>
+                      <option>جاري العمل</option>
+                      <option>مكتمل</option>
+                      <option>تم التسليم</option>
+                      <option>مرفوض</option>
+                    </select>
                   ) : (
-                    "—"
+                    r.status
                   )}
                 </td>
-                <td className="p-2 border flex gap-2">
-                  <button
+                <td className="p-2 border">{r.technician?.name || "-"}</td>
+                <td className="p-2 border">{r.recipient?.name || "-"}</td>
+                <td className="p-2 border">
+                  {r.parts && r.parts.length > 0 ? (
+                    <ul className="text-left">
+                      {r.parts.map((part, idx) => (
+                        <li key={idx}>
+                          {part.name} - {part.cost}ج - {part.source || "المحل"}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    "-"
+                  )}
+                </td>
+                <td className="p-2 border">
+                  <Button
+                    className="text-sm mr-2"
                     onClick={() => navigate(`/repairs/${r._id}`)}
-                    className="bg-blue-500 text-white px-2 py-1 rounded text-xs"
                   >
                     عرض
-                  </button>
-                  <button
-                    onClick={() => navigate(`/repairs/${r._id}/edit`)}
-                    className="bg-yellow-500 text-white px-2 py-1 rounded text-xs"
-                  >
-                    تعديل
-                  </button>
-                  <button
-                    onClick={() => handleDelete(r._id)}
-                    className="bg-red-500 text-white px-2 py-1 rounded text-xs"
-                  >
-                    حذف
-                  </button>
+                  </Button>
+                  {user?.permissions?.editRepair && (
+                    <Button
+                      onClick={() => navigate(`/repairs/${r._id}/edit`)}
+                      className="bg-lime-700 mx-1"
+                    >
+                      تعديل
+                    </Button>
+                  )}
+                  {user?.permissions?.deleteRepair && (
+                    <Button
+                      onClick={() => handleDelete(r._id)}
+                      className="bg-red-600 text-red-500 mx-1"
+                    >
+                      حذف
+                    </Button>
+                  )}
                 </td>
               </tr>
             ))}

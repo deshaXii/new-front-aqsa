@@ -1,20 +1,24 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import useAuthStore from "../auth/authStore.js";
-import Notification from "../../components/Notification.jsx";
 import Button from "../../components/Button.jsx";
+import Notification from "../../components/Notification.jsx";
 
 const TechniciansPage = () => {
-  const { user } = useAuthStore();
+  const { token, user } = useAuthStore();
   const [technicians, setTechnicians] = useState([]);
-  const [form, setForm] = useState({
+  const [newTech, setNewTech] = useState({
     name: "",
     username: "",
     password: "",
-    permissions: {},
+    permissions: {
+      addRepair: false,
+      editRepair: false,
+      deleteRepair: false,
+      receiveDevice: false,
+    },
   });
   const [error, setError] = useState("");
-  const { token } = useAuthStore();
 
   const fetchTechnicians = async () => {
     try {
@@ -24,142 +28,197 @@ const TechniciansPage = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      setTechnicians(data);
+      // إخفاء الأدمن من الجدول
+      setTechnicians(data.filter((t) => t.role !== "admin"));
     } catch (err) {
       setError("فشل في تحميل الفنيين");
     }
   };
 
   useEffect(() => {
-    user?.role === "admin" && fetchTechnicians();
+    fetchTechnicians();
   }, []);
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    if (type === "checkbox") {
-      setForm((prev) => ({
-        ...prev,
-        permissions: { ...prev.permissions, [name]: checked },
-      }));
-    } else {
-      setForm({ ...form, [name]: value });
+    const { name, value } = e.target;
+    setNewTech({ ...newTech, [name]: value });
+  };
+
+  const handlePermissionChange = (perm) => {
+    setNewTech({
+      ...newTech,
+      permissions: {
+        ...newTech.permissions,
+        [perm]: !newTech.permissions[perm],
+      },
+    });
+  };
+
+  const handleAddTech = async (e) => {
+    e.preventDefault();
+    setError("");
+    try {
+      await axios.post("http://localhost:5000/api/technicians", newTech, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setNewTech({
+        name: "",
+        username: "",
+        password: "",
+        permissions: {
+          addRepair: false,
+          editRepair: false,
+          deleteRepair: false,
+          receiveDevice: false,
+        },
+      });
+      fetchTechnicians();
+    } catch (err) {
+      setError(err.response?.data?.message || "فشل في إضافة الفني");
     }
   };
 
-  const handleAddTechnician = async (e) => {
-    e.preventDefault();
+  const handleDeleteTech = async (id) => {
+    if (!window.confirm("هل أنت متأكد من حذف هذا الفني؟")) return;
     try {
-      await axios.post("http://localhost:5000/api/technicians", form, {
+      await axios.delete(`http://localhost:5000/api/technicians/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setForm({ name: "", username: "", password: "", permissions: {} });
       fetchTechnicians();
     } catch (err) {
-      setError("فشل في إضافة الفني");
+      alert("فشل في حذف الفني");
     }
   };
 
   return (
     <div className="p-4">
-      <h2 className="text-xl font-bold mb-4">الفنيين</h2>
+      <h2 className="text-xl font-bold mb-4">قائمة الفنيين</h2>
       {error && <Notification type="error" message={error} />}
 
-      <form onSubmit={handleAddTechnician} className="mb-6 space-y-2">
-        <input
-          type="text"
-          name="name"
-          placeholder="اسم الفني"
-          value={form.name}
-          onChange={handleChange}
-          className="border p-2 rounded w-full"
-          required
-        />
-        <input
-          type="text"
-          name="username"
-          placeholder="اسم المستخدم"
-          value={form.username}
-          onChange={handleChange}
-          className="border p-2 rounded w-full"
-          required
-        />
-        <input
-          type="password"
-          name="password"
-          placeholder="كلمة المرور"
-          value={form.password}
-          onChange={handleChange}
-          className="border p-2 rounded w-full"
-          required
-        />
+      {/* إضافة فني جديد (للأدمن فقط) */}
+      {user?.role === "admin" && (
+        <form
+          onSubmit={handleAddTech}
+          className="bg-white dark:bg-gray-800 shadow rounded p-4 mb-6 max-w-xl"
+        >
+          <h3 className="font-bold mb-2">إضافة فني جديد</h3>
+          <input
+            type="text"
+            name="name"
+            value={newTech.name}
+            onChange={handleChange}
+            placeholder="اسم الفني"
+            required
+            className="border rounded px-2 py-1 w-full mb-2"
+          />
+          <input
+            type="text"
+            name="username"
+            value={newTech.username}
+            onChange={handleChange}
+            placeholder="اسم المستخدم"
+            required
+            className="border rounded px-2 py-1 w-full mb-2"
+          />
+          <input
+            type="password"
+            name="password"
+            value={newTech.password}
+            onChange={handleChange}
+            placeholder="كلمة المرور"
+            required
+            className="border rounded px-2 py-1 w-full mb-2"
+          />
 
-        <div className="grid grid-cols-2 gap-2 text-sm">
-          {/* متوقفه الان لانها نفس الشئ في استلام الاجهزه */}
-          {/* <label>
-            <input
-              type="checkbox"
-              name="addRepair"
-              checked={form.permissions.addRepair || false}
-              onChange={handleChange}
-            />{" "}
-            إضافة صيانة
-          </label> */}
-          <label>
-            <input
-              type="checkbox"
-              name="editRepair"
-              checked={form.permissions.editRepair || false}
-              onChange={handleChange}
-            />{" "}
-            تعديل صيانة
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              name="deleteRepair"
-              checked={form.permissions.deleteRepair || false}
-              onChange={handleChange}
-            />{" "}
-            حذف صيانة
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              name="receiveDevice"
-              checked={form.permissions.receiveDevice || false}
-              onChange={handleChange}
-            />{" "}
-            استلام الأجهزة
-          </label>
-        </div>
+          <div className="grid grid-cols-2 gap-2 mb-2">
+            <label>
+              <input
+                type="checkbox"
+                checked={newTech.permissions.addRepair}
+                onChange={() => handlePermissionChange("addRepair")}
+              />{" "}
+              إضافة صيانة
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={newTech.permissions.editRepair}
+                onChange={() => handlePermissionChange("editRepair")}
+              />{" "}
+              تعديل صيانة
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={newTech.permissions.deleteRepair}
+                onChange={() => handlePermissionChange("deleteRepair")}
+              />{" "}
+              حذف صيانة
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={newTech.permissions.receiveDevice}
+                onChange={() => handlePermissionChange("receiveDevice")}
+              />{" "}
+              استلام الأجهزة
+            </label>
+          </div>
 
-        <Button type="submit" className="w-full mt-2">
-          إضافة الفني
-        </Button>
-      </form>
+          <Button type="submit" className="w-full mt-2">
+            إضافة الفني
+          </Button>
+        </form>
+      )}
 
-      <table className="min-w-full bg-white dark:bg-gray-800 border text-sm">
-        <thead className="bg-gray-200 dark:bg-gray-700">
-          <tr>
-            <th className="p-2 border">الاسم</th>
-            <th className="p-2 border">اسم المستخدم</th>
-            <th className="p-2 border">الصلاحيات</th>
-          </tr>
-        </thead>
-        <tbody>
-          {technicians.map((t) => (
-            <tr key={t._id}>
-              <td className="p-2 border">{t.name}</td>
-              <td className="p-2 border">{t.username}</td>
-              <td className="p-2 border">
-                {Object.keys(t.permissions || {})
-                  .map((p) => (t.permissions[p] ? ` ${p} ` : ""))
-                  .join("")}
-              </td>
+      {/* جدول الفنيين */}
+      <div className="overflow-auto">
+        <table className="min-w-full bg-white dark:bg-gray-800 border text-sm">
+          <thead className="bg-gray-200 dark:bg-gray-700">
+            <tr>
+              <th className="p-2 border">اسم الفني</th>
+              <th className="p-2 border">اسم المستخدم</th>
+              <th className="p-2 border">الصلاحيات</th>
+              {user?.role === "admin" && (
+                <th className="p-2 border">إجراءات</th>
+              )}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {technicians.map((t) => (
+              <tr key={t._id} className="text-center">
+                <td className="p-2 border">{t.name}</td>
+                <td className="p-2 border">{t.username}</td>
+                <td className="p-2 border text-right">
+                  {Object.entries(t.permissions || {}).map(([perm, val]) =>
+                    val ? (
+                      <div key={perm} className="text-green-600">
+                        {perm === "addRepair"
+                          ? "إضافة صيانة"
+                          : perm === "editRepair"
+                          ? "تعديل صيانة"
+                          : perm === "deleteRepair"
+                          ? "حذف صيانة"
+                          : "استلام أجهزة"}
+                      </div>
+                    ) : null
+                  )}
+                </td>
+                {user?.role === "admin" && (
+                  <td className="p-2 border">
+                    <Button
+                      onClick={() => handleDeleteTech(t._id)}
+                      className="bg-red-500 text-white"
+                    >
+                      حذف
+                    </Button>
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
