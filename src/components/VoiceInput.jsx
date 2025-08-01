@@ -9,7 +9,7 @@ const VoiceInput = ({ onText, lang = "ar-EG" }) => {
       return;
     }
 
-    const recognition = new webkitSpeechRecognition(); // eslint-disable-line no-undef
+    const recognition = new webkitSpeechRecognition();
     recognition.lang = lang;
     recognition.continuous = false;
     recognition.interimResults = false;

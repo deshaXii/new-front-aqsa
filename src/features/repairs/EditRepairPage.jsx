@@ -1,33 +1,46 @@
 import React, { useState, useEffect } from "react";
-import InputField from "../../components/InputField.jsx";
-import VoiceInput from "../../components/VoiceInput.jsx";
-import Button from "../../components/Button.jsx";
-import Notification from "../../components/Notification.jsx";
-import useAuthStore from "../../features/auth/authStore.js";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import useAuthStore from "../../features/auth/authStore.js";
+import Notification from "../../components/Notification.jsx";
+import PasswordPrompt from "../../components/PasswordPrompt.jsx";
 
-const NewRepairPage = () => {
-  const [form, setForm] = useState({
-    customerName: "",
-    deviceType: "",
-    issue: "",
-    color: "",
-    phone: "",
-    price: "",
-    notes: "",
-    technician: "",
-    recipient: "",
-  });
-
-  const [parts, setParts] = useState([{ name: "", source: "", cost: 0 }]);
-  const [technicians, setTechnicians] = useState([]);
-  const [error, setError] = useState("");
+const EditRepairPage = () => {
+  const { id } = useParams();
   const navigate = useNavigate();
   const { token, user } = useAuthStore();
 
-  // جلب قائمة الفنيين لاستخدامها في الاختيارات
+  const [form, setForm] = useState({});
+  const [parts, setParts] = useState([]);
+  const [technicians, setTechnicians] = useState([]);
+  const [error, setError] = useState("");
+  const [showPrompt, setShowPrompt] = useState(false);
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
+    const fetchRepair = async () => {
+      try {
+        const { data } = await axios.get(
+          `http://localhost:5000/api/repairs/${id}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        setForm({
+          ...data,
+          technician: data.technician?._id || "",
+          recipient: data.recipient?._id || "",
+        });
+        setParts(data.parts || []);
+      } catch {
+        setError("فشل في تحميل بيانات الصيانة");
+      } finally {
+        setLoading(false);
+      }
+    };
+
     const fetchTechnicians = async () => {
       try {
         const { data } = await axios.get(
@@ -37,18 +50,18 @@ const NewRepairPage = () => {
           }
         );
         setTechnicians(data);
-        console.log(data);
-      } catch (err) {
-        console.error("فشل في جلب الفنيين:", err);
+      } catch {
         setTechnicians([]);
       }
     };
 
-    fetchTechnicians();
-  }, [token]);
+    fetchRepair();
+    user?.role === "admin" && fetchTechnicians();
+  }, [id, token]);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm({ ...form, [name]: value || "" });
   };
 
   const handlePartChange = (index, field, value) => {
@@ -69,36 +82,27 @@ const NewRepairPage = () => {
   const totalPartsCost = parts.reduce((sum, p) => sum + (p.cost || 0), 0);
   const profit = (form.price || 0) - totalPartsCost;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-
+  const handleSubmit = async () => {
     try {
-      await axios.post(
-        "http://localhost:5000/api/repairs",
-        {
-          ...form,
-          parts,
-          totalPartsCost,
-          profit,
-          createdBy: user?.id,
-        },
+      await axios.put(
+        `http://localhost:5000/api/repairs/${id}`,
+        { ...form, parts, totalPartsCost, profit, password },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       navigate("/repairs");
-    } catch (err) {
-      console.error(err.response?.data);
-      setError("فشل في حفظ الصيانة");
+    } catch {
+      setError("فشل في تعديل الصيانة");
     }
   };
 
+  if (loading) return <div className="p-4">جاري التحميل...</div>;
+
   return (
     <div className="p-4 max-w-3xl mx-auto">
-      <h2 className="text-xl font-bold mb-4">إضافة صيانة جديدة</h2>
+      <h2 className="text-xl font-bold mb-4">تعديل الصيانة</h2>
       {error && <Notification type="error" message={error} />}
 
-      <form onSubmit={handleSubmit} className="space-y-3">
-        {/* خانات الإدخال الأساسية */}
+      <div className="space-y-3">
         {[
           ["customerName", "اسم العميل"],
           ["deviceType", "نوع الجهاز"],
@@ -107,21 +111,15 @@ const NewRepairPage = () => {
           ["phone", "رقم التليفون"],
           ["price", "سعر الصيانة"],
         ].map(([name, label]) => (
-          <div key={name} className="relative">
-            <InputField
-              label={label}
-              name={name}
-              value={form[name]}
-              onChange={handleChange}
-              placeholder={`ادخل ${label}`}
-              required
-            />
-            <div className="absolute top-[1.8rem] left-[-0.5rem]">
-              <VoiceInput
-                onText={(text) => setForm({ ...form, [name]: text })}
-              />
-            </div>
-          </div>
+          <input
+            key={name}
+            type={name === "price" ? "number" : "text"}
+            name={name}
+            value={form[name] || ""}
+            onChange={handleChange}
+            placeholder={label}
+            className="border p-2 rounded w-full"
+          />
         ))}
 
         {/* اختيار الفني */}
@@ -129,7 +127,7 @@ const NewRepairPage = () => {
           <label className="block mb-1 font-semibold">الفني المسؤول</label>
           <select
             name="technician"
-            value={form.technician}
+            value={form.technician || ""}
             onChange={handleChange}
             className="border rounded w-full p-2 bg-white dark:bg-gray-800"
           >
@@ -147,7 +145,7 @@ const NewRepairPage = () => {
           <label className="block mb-1 font-semibold">المستلم</label>
           <select
             name="recipient"
-            value={form.recipient}
+            value={form.recipient || ""}
             onChange={handleChange}
             className="border rounded w-full p-2 bg-white dark:bg-gray-800"
           >
@@ -206,26 +204,43 @@ const NewRepairPage = () => {
           </button>
         </div>
 
-        {/* عرض الربح وإجمالي سعر الجملة */}
+        {/* الربح */}
         <div className="mt-2">
           <p>إجمالي سعر الجملة: {totalPartsCost} ج</p>
           <p>الربح المتوقع: {profit} ج</p>
         </div>
 
-        <InputField
-          label="ملاحظات"
+        <textarea
           name="notes"
-          value={form.notes}
+          value={form.notes || ""}
           onChange={handleChange}
-          placeholder="ملاحظات إن وجدت"
+          placeholder="ملاحظات"
+          className="border p-2 rounded w-full"
         />
 
-        <Button type="submit" className="w-full mt-4">
-          حفظ الصيانة
-        </Button>
-      </form>
+        <button
+          onClick={() => {
+            if (user?.role === "admin") handleSubmit();
+            else setShowPrompt(true);
+          }}
+          className="bg-blue-500 text-white px-4 py-2 rounded mt-2"
+        >
+          حفظ التعديلات
+        </button>
+      </div>
+
+      {showPrompt && (
+        <PasswordPrompt
+          onSubmit={(pass) => {
+            setPassword(pass);
+            handleSubmit();
+            setShowPrompt(false);
+          }}
+          onCancel={() => setShowPrompt(false)}
+        />
+      )}
     </div>
   );
 };
 
-export default NewRepairPage;
+export default EditRepairPage;

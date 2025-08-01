@@ -2,12 +2,11 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import useAuthStore from "../auth/authStore.js";
 import Notification from "../../components/Notification.jsx";
-import Button from "../../components/Button.jsx";
 
 const BackupPage = () => {
+  const { token } = useAuthStore();
   const [stats, setStats] = useState(null);
   const [error, setError] = useState("");
-  const { token } = useAuthStore();
 
   const fetchStats = async () => {
     try {
@@ -17,14 +16,23 @@ const BackupPage = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-
       setStats(data);
+      setError("");
+    } catch {
+      setError("فشل في جلب إحصائيات النظام");
+    }
+  };
 
-      if (data.dbSizeMB >= 460) {
-        alert("⚠️ اقتربت من الحد الأقصى لمساحة قاعدة البيانات!");
-      }
-    } catch (err) {
-      setError("فشل في تحميل البيانات");
+  const clearData = async () => {
+    if (!window.confirm("هل أنت متأكد أنك تريد مسح كل البيانات؟")) return;
+    try {
+      await axios.delete("http://localhost:5000/api/backup/clear", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      alert("تم مسح البيانات بنجاح");
+      fetchStats();
+    } catch {
+      alert("فشل في مسح البيانات");
     }
   };
 
@@ -33,23 +41,37 @@ const BackupPage = () => {
   }, []);
 
   return (
-    <div className="p-4 max-w-2xl mx-auto">
-      <h2 className="text-xl font-bold mb-4">النسخ الاحتياطي</h2>
+    <div className="p-4 max-w-3xl mx-auto">
+      <h2 className="text-xl font-bold mb-4">صفحة النسخ الاحتياطي</h2>
       {error && <Notification type="error" message={error} />}
 
       {stats && (
-        <div className="space-y-2 mb-6">
-          <div>عدد الصيانات: {stats.repairsCount}</div>
-          <div>عدد الفنيين: {stats.techniciansCount}</div>
-          <div>حجم قاعدة البيانات: {stats.dbSizeMB.toFixed(2)} MB</div>
+        <div className="bg-white dark:bg-gray-800 p-4 rounded shadow mb-4">
+          <p>عدد الصيانات: {stats.repairs}</p>
+          <p>عدد الفنيين: {stats.technicians}</p>
+          <p>حجم قاعدة البيانات: {stats.dbSizeMB} MB</p>
+          {stats.warning && (
+            <p className="text-red-500 font-bold">
+              ⚠️ تحذير: وصلت لاستخدام 90% من المساحة
+            </p>
+          )}
         </div>
       )}
 
-      <div className="space-x-2">
-        <Button onClick={fetchStats}>تحديث</Button>
-        <Button className="bg-blue-500">تصدير نسخة</Button>
-        <Button className="bg-green-500">استيراد نسخة</Button>
-        <Button className="bg-red-500">مسح الكل</Button>
+      <div className="flex gap-3">
+        <button
+          onClick={fetchStats}
+          className="bg-blue-500 text-white px-4 py-2 rounded"
+        >
+          تحديث الإحصائيات
+        </button>
+
+        <button
+          onClick={clearData}
+          className="bg-red-500 text-white px-4 py-2 rounded"
+        >
+          مسح كل البيانات
+        </button>
       </div>
     </div>
   );

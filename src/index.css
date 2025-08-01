@@ -6,6 +6,9 @@ body {
   font-family: "Tajawal", sans-serif;
 }
 
-.input-field input {
-  background-color: none !important;
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 40px white inset !important;
 }

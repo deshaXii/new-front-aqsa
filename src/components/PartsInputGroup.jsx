@@ -1,59 +1,62 @@
 import React from "react";
-import InputField from "./InputField.jsx";
 
-const PartsInputGroup = ({ parts, setParts }) => {
-  const handleChange = (index, field, value) => {
-    const updated = [...parts];
-    updated[index][field] = field === "cost" ? parseFloat(value) || 0 : value;
-    setParts(updated);
+const PartsInputGroup = ({ value = [], onChange }) => {
+  const handleChange = (index, field, val) => {
+    const updated = [...value];
+    updated[index] = { ...updated[index], [field]: val };
+    onChange(updated);
   };
 
-  const addPart = () => setParts([...parts, { name: "", source: "", cost: 0 }]);
+  const handleAdd = () => {
+    onChange([...value, { name: "", source: "", cost: 0 }]);
+  };
 
-  const removePart = (index) => {
-    const updated = parts.filter((_, i) => i !== index);
-    setParts(updated);
+  const handleRemove = (index) => {
+    const updated = value.filter((_, i) => i !== index);
+    onChange(updated);
   };
 
   return (
-    <div>
-      <h4 className="font-bold mb-2">قطع الغيار</h4>
-      {parts.map((part, i) => (
-        <div key={i} className="mb-4 border p-2 rounded">
-          <InputField
-            label="اسم القطعة"
+    <div className="mb-4">
+      <label className="block font-semibold mb-1">قطع الغيار</label>
+      {value.map((part, i) => (
+        <div key={i} className="flex gap-2 mb-2">
+          <input
+            type="text"
+            placeholder="اسم القطعة"
             value={part.name}
             onChange={(e) => handleChange(i, "name", e.target.value)}
-            placeholder="مثال: شاشة"
+            className="border p-1 rounded w-1/3"
           />
-          <InputField
-            label="المصدر"
+          <input
+            type="text"
+            placeholder="المصدر"
             value={part.source}
             onChange={(e) => handleChange(i, "source", e.target.value)}
-            placeholder="مثال: محل أحمد"
+            className="border p-1 rounded w-1/3"
           />
-          <InputField
-            label="السعر"
+          <input
             type="number"
+            placeholder="السعر"
             value={part.cost}
-            onChange={(e) => handleChange(i, "cost", e.target.value)}
-            placeholder="مثال: 200"
+            onChange={(e) => handleChange(i, "cost", Number(e.target.value))}
+            className="border p-1 rounded w-1/4"
           />
           <button
             type="button"
-            onClick={() => removePart(i)}
-            className="text-red-500 hover:underline mt-2"
+            onClick={() => handleRemove(i)}
+            className="bg-red-500 text-white px-2 rounded"
           >
-            حذف القطعة
+            X
           </button>
         </div>
       ))}
       <button
         type="button"
-        onClick={addPart}
-        className="text-blue-500 hover:underline"
+        onClick={handleAdd}
+        className="bg-green-500 text-white px-3 py-1 rounded"
       >
-        + إضافة قطعة غيار
+        + إضافة قطعة
       </button>
     </div>
   );
