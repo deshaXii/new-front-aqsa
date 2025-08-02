@@ -9,7 +9,7 @@ const NotificationsPage = () => {
 
   const fetchNotifications = async () => {
     const { data } = await axios.get(
-      "http://localhost:5000/api/notifications",
+      "https://aqsa-serverless.vercel.app/api/notifications",
       {
         headers: { Authorization: `Bearer ${token}` },
       }
@@ -18,9 +18,12 @@ const NotificationsPage = () => {
   };
 
   const clearAll = async () => {
-    await axios.delete("http://localhost:5000/api/notifications/clear", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    await axios.delete(
+      "https://aqsa-serverless.vercel.app/api/notifications/clear",
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
     fetchNotifications();
   };
 

@@ -19,9 +19,12 @@ const RepairsPage = () => {
 
   const fetchRepairs = async () => {
     try {
-      const { data } = await axios.get("http://localhost:5000/api/repairs", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const { data } = await axios.get(
+        "https://aqsa-serverless.vercel.app/api/repairs",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       setRepairs(data);
     } catch (err) {
       setError("فشل في تحميل بيانات الصيانة");
@@ -31,7 +34,7 @@ const RepairsPage = () => {
   const handleStatusChange = async (id, newStatus) => {
     try {
       await axios.put(
-        `http://localhost:5000/api/repairs/${id}`,
+        `https://aqsa-serverless.vercel.app/api/repairs/${id}`,
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -44,9 +47,12 @@ const RepairsPage = () => {
   const handleDelete = async (id) => {
     if (!window.confirm("هل أنت متأكد من حذف هذه الصيانة؟")) return;
     try {
-      await axios.delete(`http://localhost:5000/api/repairs/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.delete(
+        `https://aqsa-serverless.vercel.app/api/repairs/${id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       fetchRepairs();
     } catch (err) {
       alert("فشل في حذف الصيانة");

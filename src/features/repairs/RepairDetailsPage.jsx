@@ -17,7 +17,7 @@ const RepairDetailsPage = () => {
   const fetchRepair = async () => {
     try {
       const { data } = await axios.get(
-        `http://localhost:5000/api/repairs/${id}`,
+        `https://aqsa-serverless.vercel.app/api/repairs/${id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setRepair(data);
@@ -31,9 +31,12 @@ const RepairDetailsPage = () => {
   const handleDelete = async () => {
     if (!window.confirm("هل أنت متأكد من حذف هذه الصيانة؟")) return;
     try {
-      await axios.delete(`http://localhost:5000/api/repairs/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.delete(
+        `https://aqsa-serverless.vercel.app/api/repairs/${id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       navigate("/repairs");
     } catch (err) {
       alert("فشل في حذف الصيانة");
