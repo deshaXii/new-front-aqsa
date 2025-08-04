@@ -17,7 +17,7 @@ const RepairDetailsPage = () => {
   const fetchRepair = async () => {
     try {
       const { data } = await axios.get(
-        `https://aqsa-serverless.vercel.app/api/repairs/${id}`,
+        `http://localhost:5000/api/repairs/${id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setRepair(data);
@@ -31,12 +31,9 @@ const RepairDetailsPage = () => {
   const handleDelete = async () => {
     if (!window.confirm("هل أنت متأكد من حذف هذه الصيانة؟")) return;
     try {
-      await axios.delete(
-        `https://aqsa-serverless.vercel.app/api/repairs/${id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      await axios.delete(`http://localhost:5000/api/repairs/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       navigate("/repairs");
     } catch (err) {
       alert("فشل في حذف الصيانة");
@@ -56,42 +53,42 @@ const RepairDetailsPage = () => {
       {error && <Notification type="error" message={error} />}
 
       <div className="bg-white dark:bg-gray-800 shadow rounded p-4 mb-4">
-        <p>
+        <p className="mb-2.5 pb-2.5 border-b border-gray-200 dark:border-gray-700">
           <strong>اسم العميل:</strong> {repair.customerName}
         </p>
-        <p>
+        <p className="mb-2.5 pb-2.5 border-b border-gray-200 dark:border-gray-700">
           <strong>نوع الجهاز:</strong> {repair.deviceType}
         </p>
-        <p>
+        <p className="mb-2.5 pb-2.5 border-b border-gray-200 dark:border-gray-700">
           <strong>العطل:</strong> {repair.issue || "-"}
         </p>
-        <p>
+        <p className="mb-2.5 pb-2.5 border-b border-gray-200 dark:border-gray-700">
           <strong>لون الجهاز:</strong> {repair.color || "-"}
         </p>
-        <p>
+        <p className="mb-2.5 pb-2.5 border-b border-gray-200 dark:border-gray-700">
           <strong>رقم الهاتف:</strong> {repair.phone}
         </p>
-        <p>
+        <p className="mb-2.5 pb-2.5 border-b border-gray-200 dark:border-gray-700">
           <strong>السعر:</strong> {repair.price} ج
         </p>
-        <p>
+        <p className="mb-2.5 pb-2.5 border-b border-gray-200 dark:border-gray-700">
           <strong>الحالة:</strong> {repair.status}
         </p>
-        <p>
+        <p className="mb-2.5 pb-2.5 border-b border-gray-200 dark:border-gray-700">
           <strong>الفني:</strong> {repair.technician?.name || "-"}
         </p>
-        <p>
+        <p className="mb-2.5 pb-2.5 border-b border-gray-200 dark:border-gray-700">
           <strong>المستلم:</strong> {repair.recipient?.name || "-"}
         </p>
-        <p>
+        <p className="mb-2.5 pb-2.5 border-b border-gray-200 dark:border-gray-700">
           <strong>ملاحظات:</strong> {repair.notes || "-"}
         </p>
 
-        <p>
+        <p className="mb-2.5 pb-2.5 border-b border-gray-200 dark:border-gray-700">
           <strong>تاريخ الاستلام:</strong>{" "}
           {new Date(repair.createdAt).toLocaleString()}
         </p>
-        <p>
+        <p className="mb-2.5 pb-2.5 border-b border-gray-200 dark:border-gray-700">
           <strong>آخر تحديث:</strong>{" "}
           {new Date(repair.updatedAt).toLocaleString()}
         </p>

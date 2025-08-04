@@ -25,6 +25,7 @@ import BackupPage from "./features/backup/BackupPage.jsx";
 
 // Notifications
 import NotificationsPage from "./features/notifications/NotificationsPage.jsx";
+import AccountsPage from "./features/accounts/AccountsPage.jsx";
 
 const App = () => {
   return (
@@ -48,6 +49,14 @@ const App = () => {
             </ProtectedRoute>
           }
           path="/backup"
+        />
+        <Route
+          element={
+            <ProtectedRoute adminOnly>
+              <AccountsPage />
+            </ProtectedRoute>
+          }
+          path="/accounts"
         />
         <Route
           element={

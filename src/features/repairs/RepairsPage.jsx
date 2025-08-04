@@ -11,33 +11,44 @@ const RepairsPage = () => {
   const { token, user } = useAuthStore();
   const navigate = useNavigate();
 
-  // بحث وفلاتر
-  const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState("");
-  const [sortField, setSortField] = useState("createdAt");
-  const [sortOrder, setSortOrder] = useState("desc");
+  // 🔹 Modal State
+  const [showModal, setShowModal] = useState(false);
+  const [selectedRepair, setSelectedRepair] = useState(null);
+  const [finalPrice, setFinalPrice] = useState("");
+  const [parts, setParts] = useState([{ name: "", cost: "", source: "" }]);
 
   const fetchRepairs = async () => {
     try {
-      const { data } = await axios.get(
-        "https://aqsa-serverless.vercel.app/api/repairs",
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setRepairs(data);
+      const { data } = await axios.get("http://localhost:5000/api/repairs", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // 🔹 الفني العادي يشوف بس شغله
+      const filtered =
+        user?.role === "admin"
+          ? data
+          : data.filter((r) => r.technician?._id === user?.id);
+
+      setRepairs(filtered);
     } catch (err) {
       setError("فشل في تحميل بيانات الصيانة");
     }
   };
 
-  const handleStatusChange = async (id, newStatus) => {
+  const handleStatusChange = async (repair, newStatus) => {
+    if (newStatus === "تم التسليم") {
+      setSelectedRepair(repair);
+      setShowModal(true);
+    } else {
+      await updateRepairStatus(repair._id, { status: newStatus });
+    }
+  };
+
+  const updateRepairStatus = async (id, body) => {
     try {
-      await axios.put(
-        `https://aqsa-serverless.vercel.app/api/repairs/${id}`,
-        { status: newStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await axios.put(`http://localhost:5000/api/repairs/${id}`, body, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       fetchRepairs();
     } catch (err) {
       alert("فشل في تحديث الحالة");
@@ -47,145 +58,160 @@ const RepairsPage = () => {
   const handleDelete = async (id) => {
     if (!window.confirm("هل أنت متأكد من حذف هذه الصيانة؟")) return;
     try {
-      await axios.delete(
-        `https://aqsa-serverless.vercel.app/api/repairs/${id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      await axios.delete(`http://localhost:5000/api/repairs/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       fetchRepairs();
     } catch (err) {
       alert("فشل في حذف الصيانة");
     }
   };
 
+  const handleModalSubmit = async () => {
+    const totalPartsCost = parts.reduce(
+      (sum, p) => sum + Number(p.cost || 0),
+      0
+    );
+    const profit = Number(finalPrice) - totalPartsCost;
+
+    await updateRepairStatus(selectedRepair._id, {
+      status: "تم التسليم",
+      price: Number(finalPrice),
+      parts,
+      profit,
+      totalPartsCost,
+    });
+
+    setShowModal(false);
+    setFinalPrice("");
+    setParts([{ name: "", cost: "", source: "" }]);
+  };
+
+  const addPartField = () => {
+    setParts([...parts, { name: "", cost: "", source: "" }]);
+  };
+
+  const updatePart = (index, key, value) => {
+    const updated = [...parts];
+    updated[index][key] = value;
+    setParts(updated);
+  };
+
   useEffect(() => {
     fetchRepairs();
   }, []);
 
-  // تطبيق البحث + الفلاتر + الفرز
-  const filteredRepairs = repairs
-    .filter((r) =>
-      [r.customerName, r.deviceType, r.phone]
-        .join(" ")
-        .toLowerCase()
-        .includes(search.toLowerCase())
-    )
-    .filter((r) => (filterStatus ? r.status === filterStatus : true))
-    .sort((a, b) => {
-      if (sortField === "profit") {
-        return sortOrder === "asc" ? a.profit - b.profit : b.profit - a.profit;
-      }
-      return sortOrder === "asc"
-        ? new Date(a[sortField]) - new Date(b[sortField])
-        : new Date(b[sortField]) - new Date(a[sortField]);
-    });
-
   return (
-    <div className="p-4">
-      <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
-        <h2 className="text-xl font-bold">قائمة الصيانات</h2>
-
+    <div className="p-4 md:p-6">
+      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-3">
+        <h2 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-gray-100">
+          قائمة الصيانات
+        </h2>
         {user?.permissions?.addRepair && (
-          <Button onClick={() => navigate("/repairs/new")}>
-            إضافة صيانة جديدة
+          <Button
+            onClick={() => navigate("/repairs/new")}
+            className="w-full md:w-auto"
+          >
+            + إضافة صيانة جديدة
           </Button>
         )}
       </div>
 
-      {/* شريط البحث والفلاتر */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        <input
-          type="text"
-          placeholder="بحث باسم العميل / الجهاز / الهاتف"
-          className="border px-2 py-1 rounded"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          className="border px-2 py-1 rounded"
-        >
-          <option value="">كل الحالات</option>
-          <option value="في الانتظار">في الانتظار</option>
-          <option value="جاري العمل">جاري العمل</option>
-          <option value="مكتمل">مكتمل</option>
-          <option value="تم التسليم">تم التسليم</option>
-          <option value="مرفوض">مرفوض</option>
-        </select>
-        <select
-          value={sortField}
-          onChange={(e) => setSortField(e.target.value)}
-          className="border px-2 py-1 rounded"
-        >
-          <option value="createdAt">تاريخ الإدخال</option>
-          <option value="profit">الربح</option>
-        </select>
-        <select
-          value={sortOrder}
-          onChange={(e) => setSortOrder(e.target.value)}
-          className="border px-2 py-1 rounded"
-        >
-          <option value="desc">تنازلي</option>
-          <option value="asc">تصاعدي</option>
-        </select>
-      </div>
-
       {error && <Notification type="error" message={error} />}
 
-      <div className="overflow-auto">
-        <table className="min-w-full bg-white dark:bg-gray-800 border text-sm">
-          <thead className="bg-gray-200 dark:bg-gray-700">
+      {/* ✅ Desktop Table */}
+      <div className="hidden md:block overflow-x-auto shadow-md rounded-lg border border-gray-300 dark:border-gray-700">
+        <table className="min-w-[1000px] w-full text-sm text-gray-800 dark:text-gray-200">
+          <thead className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
             <tr>
-              <th className="p-2 border">اسم العميل</th>
-              <th className="p-2 border">نوع الجهاز</th>
-              <th className="p-2 border">العطل</th>
-              <th className="p-2 border">لون الجهاز</th>
-              <th className="p-2 border">رقم الهاتف</th>
-              <th className="p-2 border">السعر</th>
-              <th className="p-2 border">الحالة</th>
-              <th className="p-2 border">الفني</th>
-              <th className="p-2 border">المستلم</th>
-              <th className="p-2 border">قطع الغيار</th>
-              <th className="p-2 border">إجراءات</th>
+              {[
+                "اسم العميل",
+                "نوع الجهاز",
+                "العطل",
+                "اللون",
+                "رقم الهاتف",
+                "السعر",
+                "الحالة",
+                "الفني",
+                "المستلم",
+                "قطع الغيار",
+                "إجراءات",
+              ].map((head) => (
+                <th
+                  key={head}
+                  className="p-3 border border-gray-300 dark:border-gray-600 whitespace-nowrap"
+                >
+                  {head}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {filteredRepairs.map((r) => (
-              <tr key={r._id} className="text-center">
-                <td className="p-2 border">{r.customerName}</td>
-                <td className="p-2 border">{r.deviceType}</td>
-                <td className="p-2 border">{r.issue || "-"}</td>
-                <td className="p-2 border">{r.color || "-"}</td>
-                <td className="p-2 border">{r.phone}</td>
-                <td className="p-2 border">{r.price} ج</td>
-                <td className="p-2 border">
-                  {user?.permissions?.editRepair ? (
-                    <select
-                      value={r.status}
-                      onChange={(e) =>
-                        handleStatusChange(r._id, e.target.value)
-                      }
-                      className="border rounded px-2 py-1"
-                    >
-                      <option>في الانتظار</option>
-                      <option>جاري العمل</option>
-                      <option>مكتمل</option>
-                      <option>تم التسليم</option>
-                      <option>مرفوض</option>
-                    </select>
-                  ) : (
-                    r.status
-                  )}
+            {repairs.map((r, idx) => (
+              <tr
+                key={r._id}
+                className={`text-center transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                  idx % 2 === 0
+                    ? "bg-white dark:bg-gray-800"
+                    : "bg-gray-50 dark:bg-gray-900"
+                }`}
+              >
+                <td
+                  className="p-2 border border-gray-200 dark:border-gray-700 truncate max-w-[150px]"
+                  title={r.customerName}
+                >
+                  {r.customerName}
                 </td>
-                <td className="p-2 border">{r.technician?.name || "-"}</td>
-                <td className="p-2 border">{r.recipient?.name || "-"}</td>
-                <td className="p-2 border">
-                  {r.parts && r.parts.length > 0 ? (
-                    <ul className="text-left">
+                <td
+                  className="p-2 border border-gray-200 dark:border-gray-700 truncate max-w-[120px]"
+                  title={r.deviceType}
+                >
+                  {r.deviceType}
+                </td>
+                <td
+                  className="p-2 border border-gray-200 dark:border-gray-700 truncate max-w-[180px]"
+                  title={r.issue || "-"}
+                >
+                  {r.issue || "-"}
+                </td>
+                <td className="p-2 border border-gray-200 dark:border-gray-700">
+                  {r.color || "-"}
+                </td>
+                <td className="p-2 border border-gray-200 dark:border-gray-700">
+                  {r.phone}
+                </td>
+                <td className="p-2 border border-gray-200 dark:border-gray-700">
+                  {r.price || "-"} ج
+                </td>
+                <td className="p-2 border border-gray-200 dark:border-gray-700">
+                  <select
+                    value={r.status}
+                    onChange={(e) => handleStatusChange(r, e.target.value)}
+                    className="border rounded px-2 py-1 text-xs md:text-sm bg-white dark:bg-gray-800 dark:border-gray-600"
+                  >
+                    <option>في الانتظار</option>
+                    <option>جاري العمل</option>
+                    <option>مكتمل</option>
+                    <option>تم التسليم</option>
+                    <option>مرفوض</option>
+                  </select>
+                </td>
+                <td className="p-2 border border-gray-200 dark:border-gray-700">
+                  {r.technician?.name || "-"}
+                </td>
+                <td className="p-2 border border-gray-200 dark:border-gray-700">
+                  {r.recipient?.name || "-"}
+                </td>
+                <td
+                  className="p-2 border border-gray-200 dark:border-gray-700 text-left truncate max-w-[180px]"
+                  title={(r.parts || [])
+                    .map((p) => `${p.name} - ${p.cost}ج`)
+                    .join(", ")}
+                >
+                  {r.parts?.length ? (
+                    <ul className="space-y-1">
                       {r.parts.map((part, idx) => (
-                        <li key={idx}>
+                        <li key={idx} className="truncate">
                           {part.name} - {part.cost}ج - {part.source || "المحل"}
                         </li>
                       ))}
@@ -194,17 +220,17 @@ const RepairsPage = () => {
                     "-"
                   )}
                 </td>
-                <td className="p-2 border">
+                <td className="p-2 border border-gray-200 dark:border-gray-700 flex flex-wrap justify-center gap-2">
                   <Button
-                    className="text-sm mr-2"
                     onClick={() => navigate(`/repairs/${r._id}`)}
+                    className="text-xs md:text-sm"
                   >
                     عرض
                   </Button>
                   {user?.permissions?.editRepair && (
                     <Button
                       onClick={() => navigate(`/repairs/${r._id}/edit`)}
-                      className="bg-lime-700 mx-1"
+                      className="bg-lime-700 text-white text-xs md:text-sm"
                     >
                       تعديل
                     </Button>
@@ -212,7 +238,7 @@ const RepairsPage = () => {
                   {user?.permissions?.deleteRepair && (
                     <Button
                       onClick={() => handleDelete(r._id)}
-                      className="bg-red-600 text-red-500 mx-1"
+                      className="bg-red-600 text-white text-xs md:text-sm"
                     >
                       حذف
                     </Button>
@@ -223,6 +249,77 @@ const RepairsPage = () => {
           </tbody>
         </table>
       </div>
+
+      {/* ✅ Modal */}
+      {showModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-lg w-full">
+            <h3 className="text-lg font-bold mb-4 text-gray-800 dark:text-gray-100">
+              إدخال بيانات التسليم
+            </h3>
+
+            <label className="block mb-2 text-sm">السعر النهائي</label>
+            <input
+              type="number"
+              className="w-full mb-3 p-2 border rounded dark:bg-gray-700 dark:text-white"
+              value={finalPrice}
+              onChange={(e) => setFinalPrice(e.target.value)}
+            />
+
+            <label className="block mb-2 text-sm">قطع الغيار</label>
+            {parts.map((p, idx) => (
+              <div key={idx} className="flex gap-2 mb-2">
+                <input
+                  placeholder="الاسم"
+                  className="flex-1 p-2 border rounded dark:bg-gray-700 dark:text-white"
+                  value={p.name}
+                  onChange={(e) => updatePart(idx, "name", e.target.value)}
+                />
+                <input
+                  type="number"
+                  placeholder="التكلفة"
+                  className="w-24 p-2 border rounded dark:bg-gray-700 dark:text-white"
+                  value={p.cost}
+                  onChange={(e) => updatePart(idx, "cost", e.target.value)}
+                />
+                <input
+                  placeholder="المصدر"
+                  className="w-28 p-2 border rounded dark:bg-gray-700 dark:text-white"
+                  value={p.source}
+                  onChange={(e) => updatePart(idx, "source", e.target.value)}
+                />
+              </div>
+            ))}
+            <Button
+              onClick={addPartField}
+              className="w-full mb-4 bg-gray-500 text-white"
+            >
+              + إضافة قطعة
+            </Button>
+
+            <div className="flex justify-end gap-2">
+              <Button
+                onClick={() => setShowModal(false)}
+                className="bg-gray-400 text-white"
+              >
+                إلغاء
+              </Button>
+              <Button
+                onClick={handleModalSubmit}
+                className="bg-lime-700 text-white"
+              >
+                حفظ التسليم
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {repairs.length === 0 && (
+        <p className="text-center text-gray-500 dark:text-gray-400 mt-4">
+          لا توجد صيانات حاليًا
+        </p>
+      )}
     </div>
   );
 };

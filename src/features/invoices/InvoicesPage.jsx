@@ -20,13 +20,10 @@ const InvoicesPage = () => {
       if (startDate) params.startDate = startDate;
       if (endDate) params.endDate = endDate;
 
-      const { data } = await axios.get(
-        "https://aqsa-serverless.vercel.app/api/invoices",
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          params,
-        }
-      );
+      const { data } = await axios.get("http://localhost:5000/api/invoices", {
+        headers: { Authorization: `Bearer ${token}` },
+        params,
+      });
       setStats(data);
     } catch (err) {
       setError("فشل في تحميل بيانات الفواتير");
@@ -102,24 +99,26 @@ const InvoicesPage = () => {
       <h2 className="text-xl font-bold mb-4">صفحة الفواتير والإحصائيات</h2>
       {error && <Notification type="error" message={error} />}
 
-      <div className="mb-4 flex flex-wrap gap-2 items-end">
-        <div>
-          <label className="block font-semibold mb-1">من تاريخ</label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="border px-2 py-1 rounded"
-          />
-        </div>
-        <div>
-          <label className="block font-semibold mb-1">إلى تاريخ</label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="border px-2 py-1 rounded"
-          />
+      <div className=" mb-4 flex flex-wrap gap-2 items-end">
+        <div className="flex gap-2 date-filters">
+          <div>
+            <label className="block font-semibold mb-1">من تاريخ</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="border px-2 py-1 rounded"
+            />
+          </div>
+          <div>
+            <label className="block font-semibold mb-1">إلى تاريخ</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="border px-2 py-1 rounded"
+            />
+          </div>
         </div>
         <button
           onClick={fetchInvoices}
@@ -141,23 +140,7 @@ const InvoicesPage = () => {
         </button> */}
       </div>
 
-      {/* إجمالي الأرباح */}
-      <div className="bg-white dark:bg-gray-800 p-4 rounded shadow mb-4">
-        <p>إجمالي الربح: {totalProfit} ج</p>
-        <p>إجمالي تكلفة قطع الغيار: {totalPartsCost} ج</p>
-      </div>
-
       {/* أرباح الفنيين */}
-      <div className="bg-white dark:bg-gray-800 p-4 rounded shadow mb-4">
-        <h3 className="font-bold mb-2">أرباح الفنيين</h3>
-        <ul>
-          {technicianProfits.map((t, i) => (
-            <li key={i}>
-              {t.technicianName}: {t.profit} ج
-            </li>
-          ))}
-        </ul>
-      </div>
 
       {/* تفاصيل قطع الغيار حسب المحل */}
       <div className="bg-white dark:bg-gray-800 p-4 rounded shadow mb-4">

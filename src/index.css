@@ -28,3 +28,28 @@ input:-webkit-autofill:active {
     color: #000;
   }
 }
+
+nav.navbar a {
+  padding: 10px 8px;
+  background: #ababab;
+  border-radius: 5px;
+  color: #ffffff;
+}
+nav.navbar a.active {
+  background: #0098ec;
+  padding: 10px 8px;
+  border-radius: 5px;
+  color: #ffffff;
+}
+.dark input,
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus,
+.dark input:-webkit-autofill:active {
+  background: #111827 !important;
+  -webkit-box-shadow: 0 0 0 40px #111827 inset !important;
+  color: #ffffff !important;
+}
+.date-filters input {
+  width: 85px;
+}

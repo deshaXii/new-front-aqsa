@@ -12818,7 +12818,7 @@ const Jt = Y,
         u.preventDefault(), o("");
         try {
           const { data: f } = await Jt.post(
-            "https://aqsa-serverless.vercel.app/api/auth/login",
+            "http://localhost:5000/api/auth/login",
             { username: e, password: n }
           );
           localStorage.setItem("token", f.token),
@@ -12900,7 +12900,7 @@ const Jt = Y,
       i = async () => {
         try {
           const { data: s } = await Jt.get(
-            "https://aqsa-serverless.vercel.app/api/repairs",
+            "http://localhost:5000/api/repairs",
             { headers: { Authorization: `Bearer ${l}` } }
           );
           t(s);
@@ -13021,7 +13021,7 @@ const Jt = Y,
         u.preventDefault(), r("");
         try {
           const { data: a } = await Jt.post(
-            "https://aqsa-serverless.vercel.app/api/repairs",
+            "http://localhost:5000/api/repairs",
             e,
             { headers: { Authorization: `Bearer ${o}` } }
           );
@@ -13115,7 +13115,7 @@ const Jt = Y,
       s = async () => {
         try {
           const { data: c } = await Jt.get(
-            "https://aqsa-serverless.vercel.app/api/technicians",
+            "http://localhost:5000/api/technicians",
             { headers: { Authorization: `Bearer ${i}` } }
           );
           t(c);
@@ -13135,13 +13135,9 @@ const Jt = Y,
       a = async (c) => {
         c.preventDefault(), o("");
         try {
-          await Jt.post(
-            "https://aqsa-serverless.vercel.app/api/technicians",
-            n,
-            {
-              headers: { Authorization: `Bearer ${i}` },
-            }
-          ),
+          await Jt.post("http://localhost:5000/api/technicians", n, {
+            headers: { Authorization: `Bearer ${i}` },
+          }),
             s(),
             r({ ...n, name: "", username: "", password: "" });
         } catch {
@@ -13287,7 +13283,7 @@ const Jt = Y,
       o = async () => {
         try {
           const { data: s } = await Jt.get(
-            "https://aqsa-serverless.vercel.app/api/invoices",
+            "http://localhost:5000/api/invoices",
             { headers: { Authorization: `Bearer ${l}` } }
           );
           t(s);
@@ -13400,7 +13396,7 @@ const Jt = Y,
       o = async () => {
         try {
           const { data: a } = await Jt.get(
-            "https://aqsa-serverless.vercel.app/api/backup/stats",
+            "http://localhost:5000/api/backup/stats",
             { headers: { Authorization: `Bearer ${e}` } }
           );
           n(a);
@@ -13410,10 +13406,7 @@ const Jt = Y,
       },
       i = async () => {
         try {
-          window.open(
-            "https://aqsa-serverless.vercel.app/api/backup/export",
-            "_blank"
-          );
+          window.open("http://localhost:5000/api/backup/export", "_blank");
         } catch {
           l("فشل في التصدير");
         }

@@ -1,5 +1,5 @@
 import React from "react";
-import { Link, Outlet, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import NotificationBell from "../components/NotificationBell.jsx";
 import useAuthStore from "../features/auth/authStore.js";
 import ThemeToggle from "../components/ThemeToggle.jsx";
@@ -15,7 +15,7 @@ const MainLayout = () => {
   return (
     <div className="min-h-screen flex flex-col bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white">
       <header className="bg-white dark:bg-gray-800 shadow p-4 flex justify-between items-center">
-        <h1 className="font-bold text-xl">نظام صيانة الأجهزة</h1>
+        <h1 className="font-bold text-xl">الأقصي ستور</h1>
         <div className="flex items-center gap-4">
           {/* <NotificationBell /> */}
           <ThemeToggle />
@@ -28,26 +28,48 @@ const MainLayout = () => {
         </div>
       </header>
 
-      <nav className="bg-gray-200 dark:bg-gray-700 p-2 flex gap-4 justify-center text-sm font-semibold">
-        <Link to="/repairs" className="hover:underline">
+      <nav className="navbar bg-gray-200 dark:bg-gray-700 p-2 flex gap-3.5 justify-center text-sm font-semibold">
+        <NavLink
+          to="/repairs"
+          className={({ isActive }) => `${isActive ? "active" : ""}`}
+        >
           الصيانات
-        </Link>
+        </NavLink>
+
         {user?.role === "admin" && (
           <>
-            <Link className="hover:underline" to="/technicians">
+            <NavLink
+              to="/technicians"
+              className={({ isActive }) => `${isActive ? "active" : ""}`}
+            >
               الفنيين
-            </Link>
-            <Link className="hover:underline" to="/invoices">
+            </NavLink>
+
+            <NavLink
+              to="/invoices"
+              className={({ isActive }) => `${isActive ? "active" : ""}`}
+            >
               الفواتير
-            </Link>
-            <Link className="hover:underline" to="/backup">
+            </NavLink>
+
+            <NavLink
+              to="/accounts"
+              className={({ isActive }) => `${isActive ? "active" : ""}`}
+            >
+              الحسابات
+            </NavLink>
+
+            <NavLink
+              to="/backup"
+              className={({ isActive }) => `${isActive ? "active" : ""}`}
+            >
               النسخ الاحتياطي
-            </Link>
+            </NavLink>
           </>
         )}
       </nav>
 
-      <main className="flex-1 p-4">
+      <main className="flex-1 ">
         <Outlet />
       </main>
     </div>

@@ -14,13 +14,11 @@ const NewRepairPage = () => {
     issue: "",
     color: "",
     phone: "",
-    price: "",
     notes: "",
     technician: "",
     recipient: "",
   });
 
-  const [parts, setParts] = useState([{ name: "", source: "", cost: 0 }]);
   const [technicians, setTechnicians] = useState([]);
   const [error, setError] = useState("");
   const navigate = useNavigate();
@@ -31,7 +29,7 @@ const NewRepairPage = () => {
     const fetchTechnicians = async () => {
       try {
         const { data } = await axios.get(
-          "https://aqsa-serverless.vercel.app/api/technicians",
+          "http://localhost:5000/api/technicians",
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -50,37 +48,15 @@ const NewRepairPage = () => {
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
-
-  const handlePartChange = (index, field, value) => {
-    const newParts = [...parts];
-    newParts[index][field] = field === "cost" ? Number(value) : value;
-    setParts(newParts);
-  };
-
-  const addPart = () => {
-    setParts([...parts, { name: "", source: "", cost: 0 }]);
-  };
-
-  const removePart = (index) => {
-    const newParts = parts.filter((_, i) => i !== index);
-    setParts(newParts);
-  };
-
-  const totalPartsCost = parts.reduce((sum, p) => sum + (p.cost || 0), 0);
-  const profit = (form.price || 0) - totalPartsCost;
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
     try {
       await axios.post(
-        "https://aqsa-serverless.vercel.app/api/repairs",
+        "http://localhost:5000/api/repairs",
         {
           ...form,
-          parts,
-          totalPartsCost,
-          profit,
           createdBy: user?.id,
         },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -105,7 +81,6 @@ const NewRepairPage = () => {
           ["issue", "نوع العطل"],
           ["color", "لون الجهاز"],
           ["phone", "رقم التليفون"],
-          ["price", "سعر الصيانة"],
         ].map(([name, label]) => (
           <div key={name} className="relative">
             <InputField
@@ -158,58 +133,6 @@ const NewRepairPage = () => {
               </option>
             ))}
           </select>
-        </div>
-
-        {/* قطع الغيار */}
-        <div>
-          <h3 className="font-bold mt-4 mb-2">قطع الغيار</h3>
-          {parts.map((part, idx) => (
-            <div key={idx} className="flex gap-2 mb-2">
-              <input
-                type="text"
-                placeholder="اسم القطعة"
-                value={part.name}
-                onChange={(e) => handlePartChange(idx, "name", e.target.value)}
-                className="border p-2 rounded w-1/3"
-              />
-              <input
-                type="text"
-                placeholder="المحل/المصدر"
-                value={part.source}
-                onChange={(e) =>
-                  handlePartChange(idx, "source", e.target.value)
-                }
-                className="border p-2 rounded w-1/3"
-              />
-              <input
-                type="number"
-                placeholder="السعر"
-                value={part.cost}
-                onChange={(e) => handlePartChange(idx, "cost", e.target.value)}
-                className="border p-2 rounded w-1/3"
-              />
-              <button
-                type="button"
-                onClick={() => removePart(idx)}
-                className="bg-red-500 text-white px-2 rounded"
-              >
-                ×
-              </button>
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={addPart}
-            className="bg-green-500 text-white px-3 py-1 rounded mb-4"
-          >
-            إضافة قطعة غيار
-          </button>
-        </div>
-
-        {/* عرض الربح وإجمالي سعر الجملة */}
-        <div className="mt-2">
-          <p>إجمالي سعر الجملة: {totalPartsCost} ج</p>
-          <p>الربح المتوقع: {profit} ج</p>
         </div>
 
         <InputField
