@@ -23,7 +23,7 @@ const TechniciansPage = () => {
   const fetchTechnicians = async () => {
     try {
       const { data } = await axios.get(
-        "http://localhost:5000/api/technicians",
+        "https://aqsa-serverless.vercel.app/api/technicians",
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -58,9 +58,13 @@ const TechniciansPage = () => {
     e.preventDefault();
     setError("");
     try {
-      await axios.post("http://localhost:5000/api/technicians", newTech, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.post(
+        "https://aqsa-serverless.vercel.app/api/technicians",
+        newTech,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       setNewTech({
         name: "",
         username: "",
@@ -81,9 +85,12 @@ const TechniciansPage = () => {
   const handleDeleteTech = async (id) => {
     if (!window.confirm("هل أنت متأكد من حذف هذا الفني؟")) return;
     try {
-      await axios.delete(`http://localhost:5000/api/technicians/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.delete(
+        `https://aqsa-serverless.vercel.app/api/technicians/${id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       fetchTechnicians();
     } catch (err) {
       alert("فشل في حذف الفني");

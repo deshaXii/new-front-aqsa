@@ -20,10 +20,13 @@ const InvoicesPage = () => {
       if (startDate) params.startDate = startDate;
       if (endDate) params.endDate = endDate;
 
-      const { data } = await axios.get("http://localhost:5000/api/invoices", {
-        headers: { Authorization: `Bearer ${token}` },
-        params,
-      });
+      const { data } = await axios.get(
+        "https://aqsa-serverless.vercel.app/api/invoices",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          params,
+        }
+      );
       setStats(data);
     } catch (err) {
       setError("فشل في تحميل بيانات الفواتير");

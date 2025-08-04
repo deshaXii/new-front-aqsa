@@ -10,7 +10,7 @@ const NotificationBell = () => {
 
   const fetchNotifications = async () => {
     const { data } = await axios.get(
-      "http://localhost:5000/api/notifications",
+      "https://aqsa-serverless.vercel.app/api/notifications",
       {
         headers: { Authorization: `Bearer ${token}` },
       }

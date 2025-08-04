@@ -19,9 +19,12 @@ const RepairsPage = () => {
 
   const fetchRepairs = async () => {
     try {
-      const { data } = await axios.get("http://localhost:5000/api/repairs", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const { data } = await axios.get(
+        "https://aqsa-serverless.vercel.app/api/repairs",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       // 🔹 الفني العادي يشوف بس شغله
       const filtered =
@@ -46,9 +49,13 @@ const RepairsPage = () => {
 
   const updateRepairStatus = async (id, body) => {
     try {
-      await axios.put(`http://localhost:5000/api/repairs/${id}`, body, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.put(
+        `https://aqsa-serverless.vercel.app/api/repairs/${id}`,
+        body,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       fetchRepairs();
     } catch (err) {
       alert("فشل في تحديث الحالة");
@@ -58,9 +65,12 @@ const RepairsPage = () => {
   const handleDelete = async (id) => {
     if (!window.confirm("هل أنت متأكد من حذف هذه الصيانة؟")) return;
     try {
-      await axios.delete(`http://localhost:5000/api/repairs/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.delete(
+        `https://aqsa-serverless.vercel.app/api/repairs/${id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       fetchRepairs();
     } catch (err) {
       alert("فشل في حذف الصيانة");

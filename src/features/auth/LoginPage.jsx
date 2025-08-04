@@ -26,7 +26,7 @@ const LoginPage = () => {
 
     try {
       const { data } = await axios.post(
-        "http://localhost:5000/api/auth/login",
+        "https://aqsa-serverless.vercel.app/api/auth/login",
         { username, password }
       );
 
