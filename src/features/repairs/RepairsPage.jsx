@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import useAuthStore from "../auth/authStore.js";
 import Notification from "../../components/Notification.jsx";
@@ -6,6 +6,7 @@ import Button from "../../components/Button.jsx";
 import { useNavigate } from "react-router-dom";
 
 const RepairsPage = () => {
+  const searchFormRef = useRef(null);
   const [repairs, setRepairs] = useState([]);
   const [users, setUsers] = useState([]);
   const [error, setError] = useState("");
@@ -20,6 +21,7 @@ const RepairsPage = () => {
 
   // 🔹 Modal
   const [showModal, setShowModal] = useState(false);
+  const [searchFormShown, setSearchFormShown] = useState(true);
   const [selectedRepair, setSelectedRepair] = useState(null);
   const [finalPrice, setFinalPrice] = useState("");
   const [parts, setParts] = useState([{ name: "", cost: "", source: "" }]);
@@ -28,7 +30,9 @@ const RepairsPage = () => {
     try {
       const { data } = await axios.get(
         "https://aqsa-serverless.vercel.app/api/repairs",
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
 
       const filtered =
@@ -68,7 +72,9 @@ const RepairsPage = () => {
       await axios.put(
         `https://aqsa-serverless.vercel.app/api/repairs/${id}`,
         body,
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
       fetchRepairs();
     } catch (err) {
@@ -81,7 +87,9 @@ const RepairsPage = () => {
     try {
       await axios.delete(
         `https://aqsa-serverless.vercel.app/api/repairs/${id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
       fetchRepairs();
     } catch (err) {
@@ -138,6 +146,15 @@ const RepairsPage = () => {
     return matchesSearch && matchesStatus && matchesDateFrom && matchesDateTo;
   });
 
+  const handleSearchFormToggle = () => {
+    setSearchFormShown(!searchFormShown);
+    if (searchFormShown) {
+      searchFormRef.current.style.display = "none";
+    } else {
+      searchFormRef.current.style.display = "grid";
+    }
+  };
+
   useEffect(() => {
     fetchRepairs();
     fetchUsers();
@@ -149,18 +166,29 @@ const RepairsPage = () => {
         <h2 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-gray-100">
           قائمة الصيانات
         </h2>
-        {user?.permissions?.addRepair && (
+        <div className="flex items-center gap-2">
+          {user?.permissions?.addRepair && (
+            <Button
+              onClick={() => navigate("/repairs/new")}
+              className="w-full md:w-auto"
+            >
+              + إضافة صيانة جديدة
+            </Button>
+          )}
           <Button
-            onClick={() => navigate("/repairs/new")}
-            className="w-full md:w-auto"
+            className="flex sm:hidden mobile-search"
+            onClick={() => handleSearchFormToggle()}
           >
-            + إضافة صيانة جديدة
+            بحث
           </Button>
-        )}
+        </div>
       </div>
 
       {/* 🔹 Filters */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
+      <div
+        ref={searchFormRef}
+        className="hidden sm:grid grid-cols-1 md:grid-cols-4 gap-3 mb-6"
+      >
         <input
           placeholder="بحث بالاسم / الهاتف / الجهاز"
           value={search}
@@ -404,7 +432,7 @@ const RepairsPage = () => {
       {/* ✅ Modal */}
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-lg w-full">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-lg w-[calc(100%-5px)]">
             <h3 className="text-lg font-bold mb-4 text-gray-800 dark:text-gray-100">
               إدخال بيانات التسليم
             </h3>
@@ -419,10 +447,13 @@ const RepairsPage = () => {
 
             <label className="block mb-2 text-sm">قطع الغيار</label>
             {parts.map((p, idx) => (
-              <div key={idx} className="flex gap-2 mb-2">
+              <div
+                key={idx}
+                className="flex gap-2 mb-2 flex-wrap sm:flex-nowrap"
+              >
                 <input
                   placeholder="الاسم"
-                  className="flex-1 p-2 border rounded dark:bg-gray-700 dark:text-white"
+                  className="flex-1 w-14 p-2 border rounded dark:bg-gray-700 dark:text-white"
                   value={p.name}
                   onChange={(e) => updatePart(idx, "name", e.target.value)}
                 />
@@ -435,7 +466,7 @@ const RepairsPage = () => {
                 />
                 <input
                   placeholder="المصدر"
-                  className="w-28 p-2 border rounded dark:bg-gray-700 dark:text-white"
+                  className="w-full sm:w-28 p-2 border rounded dark:bg-gray-700 dark:text-white"
                   value={p.source}
                   onChange={(e) => updatePart(idx, "source", e.target.value)}
                 />

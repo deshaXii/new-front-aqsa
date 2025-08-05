@@ -28,10 +28,12 @@ const MainLayout = () => {
         </div>
       </header>
 
-      <nav className="navbar bg-gray-200 dark:bg-gray-700 p-2 flex gap-3.5 justify-center text-sm font-semibold">
+      <nav className="navbar bg-gray-200 dark:bg-gray-700 p-2 flex gap-[5px] sm:gap-3.5 justify-center text-sm font-semibold">
         <NavLink
           to="/repairs"
-          className={({ isActive }) => `${isActive ? "active" : ""}`}
+          className={({ isActive }) =>
+            `${isActive ? "active" : ""} text-[12px] sm:text-[16px]`
+          }
         >
           الصيانات
         </NavLink>
@@ -40,28 +42,36 @@ const MainLayout = () => {
           <>
             <NavLink
               to="/technicians"
-              className={({ isActive }) => `${isActive ? "active" : ""}`}
+              className={({ isActive }) =>
+                `${isActive ? "active" : ""} text-[12px] sm:text-[16px]`
+              }
             >
               الفنيين
             </NavLink>
 
             <NavLink
               to="/invoices"
-              className={({ isActive }) => `${isActive ? "active" : ""}`}
+              className={({ isActive }) =>
+                `${isActive ? "active" : ""} text-[12px] sm:text-[16px]`
+              }
             >
               الفواتير
             </NavLink>
 
             <NavLink
               to="/accounts"
-              className={({ isActive }) => `${isActive ? "active" : ""}`}
+              className={({ isActive }) =>
+                `${isActive ? "active" : ""} text-[12px] sm:text-[16px]`
+              }
             >
               الحسابات
             </NavLink>
 
             <NavLink
               to="/backup"
-              className={({ isActive }) => `${isActive ? "active" : ""}`}
+              className={({ isActive }) =>
+                `${isActive ? "active" : ""} text-[12px] sm:text-[16px]`
+              }
             >
               النسخ الاحتياطي
             </NavLink>

@@ -50,6 +50,18 @@ nav.navbar a.active {
   -webkit-box-shadow: 0 0 0 40px #111827 inset !important;
   color: #ffffff !important;
 }
+
+.dark select {
+  background: #111827 !important;
+  color: #ffffff !important;
+}
 .date-filters input {
   width: 85px;
+}
+.dark nav.navbar a {
+  background: #1f2937;
+}
+
+.dark nav.navbar a.active {
+  background: #3b82f6;
 }
