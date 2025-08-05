@@ -1,7 +1,7 @@
 import axios from "axios";
 import useAuthStore from "../../pages/auth/authStore";
 
-const API_URL = "http://localhost:5000/api/repairs";
+const API_URL = "https://aqsa-serverless.vercel.app/api/repairs";
 
 export const getRepairs = async () => {
   const { token } = useAuthStore.getState();
