@@ -32,10 +32,10 @@ const EditRepairPage = () => {
   const fetchRepair = async () => {
     try {
       const [repairRes, techsRes] = await Promise.all([
-        axios.get(`https://aqsa-serverless.vercel.app/api/repairs/${id}`, {
+        axios.get(`http://localhost:5000/api/repairs/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        axios.get(`https://aqsa-serverless.vercel.app/api/technicians`, {
+        axios.get(`http://localhost:5000/api/technicians`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);
@@ -97,13 +97,9 @@ const EditRepairPage = () => {
       return;
     }
     try {
-      await axios.put(
-        `https://aqsa-serverless.vercel.app/api/repairs/${id}`,
-        form,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      await axios.put(`http://localhost:5000/api/repairs/${id}`, form, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       navigate("/repairs");
     } catch (err) {
       setError("فشل في حفظ التعديلات");

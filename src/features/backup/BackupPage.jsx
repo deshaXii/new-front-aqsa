@@ -11,7 +11,7 @@ const BackupPage = () => {
   const fetchStats = async () => {
     try {
       const { data } = await axios.get(
-        "https://aqsa-serverless.vercel.app/api/backup/stats",
+        "http://localhost:5000/api/backup/stats",
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -26,12 +26,9 @@ const BackupPage = () => {
   const clearData = async () => {
     if (!window.confirm("هل أنت متأكد أنك تريد مسح كل البيانات؟")) return;
     try {
-      await axios.delete(
-        "https://aqsa-serverless.vercel.app/api/backup/clear",
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      await axios.delete("http://localhost:5000/api/backup/clear", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       alert("تم مسح البيانات بنجاح");
       fetchStats();
     } catch {

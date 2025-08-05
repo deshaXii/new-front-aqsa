@@ -29,7 +29,7 @@ const NewRepairPage = () => {
     const fetchTechnicians = async () => {
       try {
         const { data } = await axios.get(
-          "https://aqsa-serverless.vercel.app/api/technicians",
+          "http://localhost:5000/api/technicians",
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -54,7 +54,7 @@ const NewRepairPage = () => {
 
     try {
       await axios.post(
-        "https://aqsa-serverless.vercel.app/api/repairs",
+        "http://localhost:5000/api/repairs",
         {
           ...form,
           createdBy: user?.id,

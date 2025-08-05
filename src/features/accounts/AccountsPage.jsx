@@ -14,12 +14,9 @@ const AccountsPage = () => {
     if (!window.confirm("هل أنت متأكد من حذف هذه المعاملة؟")) return;
 
     try {
-      await axios.delete(
-        `https://aqsa-serverless.vercel.app/api/accounts/${id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      await axios.delete(`http://localhost:5000/api/accounts/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setTransactions((prev) => prev.filter((t) => t._id !== id));
     } catch (err) {
       alert("فشل في حذف المعاملة");
@@ -36,7 +33,7 @@ const AccountsPage = () => {
     setLoading(true);
     try {
       const { data } = await axios.get(
-        "https://aqsa-serverless.vercel.app/api/accounts/summary",
+        "http://localhost:5000/api/accounts/summary",
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setSummary(data);
@@ -51,13 +48,9 @@ const AccountsPage = () => {
     if (!newTransaction.amount) return alert("الرجاء إدخال المبلغ");
 
     try {
-      await axios.post(
-        "https://aqsa-serverless.vercel.app/api/accounts",
-        newTransaction,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      await axios.post("http://localhost:5000/api/accounts", newTransaction, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setNewTransaction({ type: "داخل", amount: "", note: "" });
       fetchSummary();
     } catch (err) {

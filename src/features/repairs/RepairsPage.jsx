@@ -7,11 +7,18 @@ import { useNavigate } from "react-router-dom";
 
 const RepairsPage = () => {
   const [repairs, setRepairs] = useState([]);
+  const [users, setUsers] = useState([]);
   const [error, setError] = useState("");
   const { token, user } = useAuthStore();
   const navigate = useNavigate();
 
-  // 🔹 Modal State
+  // 🔹 Filters
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
+  // 🔹 Modal
   const [showModal, setShowModal] = useState(false);
   const [selectedRepair, setSelectedRepair] = useState(null);
   const [finalPrice, setFinalPrice] = useState("");
@@ -21,12 +28,9 @@ const RepairsPage = () => {
     try {
       const { data } = await axios.get(
         "https://aqsa-serverless.vercel.app/api/repairs",
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // 🔹 الفني العادي يشوف بس شغله
       const filtered =
         user?.role === "admin"
           ? data
@@ -35,6 +39,18 @@ const RepairsPage = () => {
       setRepairs(filtered);
     } catch (err) {
       setError("فشل في تحميل بيانات الصيانة");
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const { data } = await axios.get(
+        "https://aqsa-serverless.vercel.app/api/technicians",
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setUsers(data);
+    } catch (err) {
+      console.error("فشل في جلب الفنيين");
     }
   };
 
@@ -52,9 +68,7 @@ const RepairsPage = () => {
       await axios.put(
         `https://aqsa-serverless.vercel.app/api/repairs/${id}`,
         body,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       fetchRepairs();
     } catch (err) {
@@ -67,9 +81,7 @@ const RepairsPage = () => {
     try {
       await axios.delete(
         `https://aqsa-serverless.vercel.app/api/repairs/${id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       fetchRepairs();
     } catch (err) {
@@ -107,8 +119,28 @@ const RepairsPage = () => {
     setParts(updated);
   };
 
+  // 🔹 Filters
+  const filteredRepairs = repairs.filter((r) => {
+    const matchesSearch =
+      r.customerName?.includes(search) ||
+      r.phone?.includes(search) ||
+      r.deviceType?.includes(search);
+
+    const matchesStatus = statusFilter ? r.status === statusFilter : true;
+
+    const matchesDateFrom = dateFrom
+      ? new Date(r.createdAt) >= new Date(dateFrom)
+      : true;
+    const matchesDateTo = dateTo
+      ? new Date(r.createdAt) <= new Date(dateTo)
+      : true;
+
+    return matchesSearch && matchesStatus && matchesDateFrom && matchesDateTo;
+  });
+
   useEffect(() => {
     fetchRepairs();
+    fetchUsers();
   }, []);
 
   return (
@@ -127,11 +159,45 @@ const RepairsPage = () => {
         )}
       </div>
 
+      {/* 🔹 Filters */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
+        <input
+          placeholder="بحث بالاسم / الهاتف / الجهاز"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="p-2 border rounded dark:bg-gray-700 dark:text-white"
+        />
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="p-2 border rounded dark:bg-gray-700 dark:text-white"
+        >
+          <option value="">كل الحالات</option>
+          <option>في الانتظار</option>
+          <option>جاري العمل</option>
+          <option>مكتمل</option>
+          <option>تم التسليم</option>
+          <option>مرفوض</option>
+        </select>
+        <input
+          type="date"
+          value={dateFrom}
+          onChange={(e) => setDateFrom(e.target.value)}
+          className="p-2 border rounded dark:bg-gray-700 dark:text-white"
+        />
+        <input
+          type="date"
+          value={dateTo}
+          onChange={(e) => setDateTo(e.target.value)}
+          className="p-2 border rounded dark:bg-gray-700 dark:text-white"
+        />
+      </div>
+
       {error && <Notification type="error" message={error} />}
 
       {/* ✅ Desktop Table */}
       <div className="hidden md:block overflow-x-auto shadow-md rounded-lg border border-gray-300 dark:border-gray-700">
-        <table className="min-w-[1000px] w-full text-sm text-gray-800 dark:text-gray-200">
+        <table className="min-w-[1200px] w-full text-sm text-gray-800 dark:text-gray-200">
           <thead className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
             <tr>
               {[
@@ -144,6 +210,8 @@ const RepairsPage = () => {
                 "الحالة",
                 "الفني",
                 "المستلم",
+                "تاريخ الإنشاء",
+                "تاريخ التسليم",
                 "قطع الغيار",
                 "إجراءات",
               ].map((head) => (
@@ -157,7 +225,7 @@ const RepairsPage = () => {
             </tr>
           </thead>
           <tbody>
-            {repairs.map((r, idx) => (
+            {filteredRepairs.map((r, idx) => (
               <tr
                 key={r._id}
                 className={`text-center transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 ${
@@ -166,22 +234,13 @@ const RepairsPage = () => {
                     : "bg-gray-50 dark:bg-gray-900"
                 }`}
               >
-                <td
-                  className="p-2 border border-gray-200 dark:border-gray-700 truncate max-w-[150px]"
-                  title={r.customerName}
-                >
+                <td className="p-2 border border-gray-200 dark:border-gray-700">
                   {r.customerName}
                 </td>
-                <td
-                  className="p-2 border border-gray-200 dark:border-gray-700 truncate max-w-[120px]"
-                  title={r.deviceType}
-                >
+                <td className="p-2 border border-gray-200 dark:border-gray-700">
                   {r.deviceType}
                 </td>
-                <td
-                  className="p-2 border border-gray-200 dark:border-gray-700 truncate max-w-[180px]"
-                  title={r.issue || "-"}
-                >
+                <td className="p-2 border border-gray-200 dark:border-gray-700">
                   {r.issue || "-"}
                 </td>
                 <td className="p-2 border border-gray-200 dark:border-gray-700">
@@ -210,25 +269,28 @@ const RepairsPage = () => {
                   {r.technician?.name || "-"}
                 </td>
                 <td className="p-2 border border-gray-200 dark:border-gray-700">
-                  {r.recipient?.name || "-"}
+                  {users.find(
+                    (u) =>
+                      u._id === r.recipient?._id &&
+                      u.permissions?.receiveDevices
+                  )?.name ||
+                    r.recipient?.name ||
+                    "-"}
                 </td>
-                <td
-                  className="p-2 border border-gray-200 dark:border-gray-700 text-left truncate max-w-[180px]"
-                  title={(r.parts || [])
-                    .map((p) => `${p.name} - ${p.cost}ج`)
-                    .join(", ")}
-                >
-                  {r.parts?.length ? (
-                    <ul className="space-y-1">
-                      {r.parts.map((part, idx) => (
-                        <li key={idx} className="truncate">
-                          {part.name} - {part.cost}ج - {part.source || "المحل"}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    "-"
-                  )}
+                <td className="p-2 border border-gray-200 dark:border-gray-700">
+                  {new Date(r.createdAt).toLocaleDateString()}
+                </td>
+                <td className="p-2 border border-gray-200 dark:border-gray-700">
+                  {r.status === "تم التسليم"
+                    ? new Date(r.updatedAt).toLocaleDateString()
+                    : "-"}
+                </td>
+                <td className="p-2 border border-gray-200 dark:border-gray-700">
+                  {r.parts?.length
+                    ? r.parts
+                        .map((p, idx) => `${p.name} (${p.cost}ج)`)
+                        .join(", ")
+                    : "-"}
                 </td>
                 <td className="p-2 border border-gray-200 dark:border-gray-700 flex flex-wrap justify-center gap-2">
                   <Button
@@ -258,6 +320,85 @@ const RepairsPage = () => {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* ✅ Mobile Cards */}
+      <div className="md:hidden space-y-4 mt-4">
+        {filteredRepairs.map((r) => (
+          <div
+            key={r._id}
+            className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-4 border border-gray-200 dark:border-gray-700"
+          >
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="font-bold text-gray-800 dark:text-gray-100">
+                {r.customerName}
+              </h3>
+              <select
+                value={r.status}
+                onChange={(e) => handleStatusChange(r, e.target.value)}
+                className="border rounded px-2 py-1 text-xs bg-white dark:bg-gray-800 dark:border-gray-600"
+              >
+                <option>في الانتظار</option>
+                <option>جاري العمل</option>
+                <option>مكتمل</option>
+                <option>تم التسليم</option>
+                <option>مرفوض</option>
+              </select>
+            </div>
+            <p className="text-gray-600 dark:text-gray-300 text-sm">
+              <strong>الجهاز:</strong> {r.deviceType} - {r.color || "-"}
+            </p>
+            <p className="text-gray-600 dark:text-gray-300 text-sm">
+              <strong>العطل:</strong> {r.issue || "-"}
+            </p>
+            <p className="text-gray-600 dark:text-gray-300 text-sm">
+              <strong>الهاتف:</strong> {r.phone}
+            </p>
+            <p className="text-gray-600 dark:text-gray-300 text-sm">
+              <strong>السعر:</strong> {r.price || "-"} ج
+            </p>
+            <p className="text-gray-600 dark:text-gray-300 text-sm">
+              <strong>تاريخ الاستلام:</strong>{" "}
+              {new Date(r.createdAt).toLocaleDateString()}
+            </p>
+            {r.status === "تم التسليم" && (
+              <p className="text-gray-600 dark:text-gray-300 text-sm">
+                <strong>تاريخ التسليم:</strong>{" "}
+                {new Date(r.updatedAt).toLocaleDateString()}
+              </p>
+            )}
+            {r.parts?.length > 0 && (
+              <p className="text-gray-600 dark:text-gray-300 text-sm mt-1">
+                <strong>قطع الغيار:</strong>{" "}
+                {r.parts.map((p) => `${p.name}(${p.cost}ج)`).join(", ")}
+              </p>
+            )}
+            <div className="flex justify-end gap-2 mt-3 flex-wrap">
+              <Button
+                onClick={() => navigate(`/repairs/${r._id}`)}
+                className="text-xs"
+              >
+                عرض
+              </Button>
+              {user?.permissions?.editRepair && (
+                <Button
+                  onClick={() => navigate(`/repairs/${r._id}/edit`)}
+                  className="bg-lime-700 text-white text-xs"
+                >
+                  تعديل
+                </Button>
+              )}
+              {user?.permissions?.deleteRepair && (
+                <Button
+                  onClick={() => handleDelete(r._id)}
+                  className="bg-red-600 text-white text-xs"
+                >
+                  حذف
+                </Button>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* ✅ Modal */}
@@ -325,7 +466,7 @@ const RepairsPage = () => {
         </div>
       )}
 
-      {repairs.length === 0 && (
+      {filteredRepairs.length === 0 && (
         <p className="text-center text-gray-500 dark:text-gray-400 mt-4">
           لا توجد صيانات حاليًا
         </p>
