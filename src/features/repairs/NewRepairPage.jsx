@@ -24,7 +24,7 @@ const NewRepairPage = () => {
   const navigate = useNavigate();
   const { token, user } = useAuthStore();
 
-  // جلب قائمة الفنيين لاستخدامها في الاختيارات
+  // ✅ جلب الفنيين
   useEffect(() => {
     const fetchTechnicians = async () => {
       try {
@@ -35,7 +35,6 @@ const NewRepairPage = () => {
           }
         );
         setTechnicians(data);
-        console.log(data);
       } catch (err) {
         console.error("فشل في جلب الفنيين:", err);
         setTechnicians([]);
@@ -48,6 +47,7 @@ const NewRepairPage = () => {
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -57,6 +57,7 @@ const NewRepairPage = () => {
         "https://aqsa-serverless.vercel.app/api/repairs",
         {
           ...form,
+          status: "في الانتظار", // ✅ الحالة الافتراضية
           createdBy: user?.id,
         },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -68,13 +69,16 @@ const NewRepairPage = () => {
     }
   };
 
+  // ✅ تصفية المستلمين الذين لديهم صلاحية استلام الأجهزة
+  const recipients = technicians.filter((t) => t.permissions?.receiveDevices);
+
   return (
     <div className="p-4 max-w-3xl mx-auto">
       <h2 className="text-xl font-bold mb-4">إضافة صيانة جديدة</h2>
       {error && <Notification type="error" message={error} />}
 
       <form onSubmit={handleSubmit} className="space-y-3">
-        {/* خانات الإدخال الأساسية */}
+        {/* ✅ الخانات الأساسية */}
         {[
           ["customerName", "اسم العميل"],
           ["deviceType", "نوع الجهاز"],
@@ -99,7 +103,7 @@ const NewRepairPage = () => {
           </div>
         ))}
 
-        {/* اختيار الفني */}
+        {/* ✅ اختيار الفني */}
         <div>
           <label className="block mb-1 font-semibold">الفني المسؤول</label>
           <select
@@ -117,7 +121,7 @@ const NewRepairPage = () => {
           </select>
         </div>
 
-        {/* اختيار المستلم */}
+        {/* ✅ اختيار المستلم */}
         <div>
           <label className="block mb-1 font-semibold">المستلم</label>
           <select
@@ -127,11 +131,15 @@ const NewRepairPage = () => {
             className="border rounded w-full p-2 bg-white dark:bg-gray-800"
           >
             <option value="">اختر المستلم</option>
-            {technicians.map((t) => (
-              <option key={t._id} value={t._id}>
-                {t.name}
-              </option>
-            ))}
+            {recipients.length > 0 ? (
+              recipients.map((t) => (
+                <option key={t._id} value={t._id}>
+                  {t.name}
+                </option>
+              ))
+            ) : (
+              <option disabled>لا يوجد مستلمين متاحين</option>
+            )}
           </select>
         </div>
 

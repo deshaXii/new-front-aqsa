@@ -21,6 +21,7 @@ const RepairsPage = () => {
 
   // 🔹 Modal
   const [showModal, setShowModal] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
   const [searchFormShown, setSearchFormShown] = useState(true);
   const [selectedRepair, setSelectedRepair] = useState(null);
   const [finalPrice, setFinalPrice] = useState("");
@@ -36,9 +37,12 @@ const RepairsPage = () => {
       );
 
       const filtered =
-        user?.role === "admin"
+        user?.role === "admin" || user?.permissions?.receiveDevice
           ? data
-          : data.filter((r) => r.technician?._id === user?.id);
+          : data.filter(
+              (r) =>
+                r.technician?._id === user?.id || r.recipient?._id === user?.id
+            );
 
       setRepairs(filtered);
     } catch (err) {
@@ -153,6 +157,11 @@ const RepairsPage = () => {
     } else {
       searchFormRef.current.style.display = "grid";
     }
+  };
+
+  const openContactModal = (repair) => {
+    setSelectedRepair(repair);
+    setShowContactModal(true);
   };
 
   useEffect(() => {
@@ -327,6 +336,18 @@ const RepairsPage = () => {
                   >
                     عرض
                   </Button>
+                  <Button
+                    onClick={() => navigate(`/repairs/${r._id}`)}
+                    className="text-xs md:text-sm"
+                  >
+                    عرض
+                  </Button>
+                  <Button
+                    onClick={() => openContactModal(r)}
+                    className="bg-blue-600 text-white text-xs md:text-sm"
+                  >
+                    تواصل
+                  </Button>
                   {user?.permissions?.editRepair && (
                     <Button
                       onClick={() => navigate(`/repairs/${r._id}/edit`)}
@@ -349,7 +370,40 @@ const RepairsPage = () => {
           </tbody>
         </table>
       </div>
-
+      {showContactModal && selectedRepair && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-sm w-full text-center">
+            <h3 className="font-bold mb-3">تواصل مع العميل</h3>
+            <p className="mb-4">اختر طريقة التواصل</p>
+            <div className="flex justify-center gap-3">
+              <a
+                href={`tel:${selectedRepair.phone}`}
+                className="bg-blue-600 text-white px-4 py-2 rounded"
+              >
+                اتصال
+              </a>
+              <a
+                href={`https://wa.me/${
+                  selectedRepair.phone
+                }?text=مرحبًا عميلنا العزيز، تم الانتهاء من صيانة جهازك بنجاح. التكلفة: ${
+                  selectedRepair.price || "-"
+                } جنيه. شكرًا لاختياركم الأقصي ستور.`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-green-600 text-white px-4 py-2 rounded"
+              >
+                واتساب
+              </a>
+            </div>
+            <button
+              onClick={() => setShowContactModal(false)}
+              className="mt-4 bg-gray-400 text-white px-4 py-2 rounded"
+            >
+              إغلاق
+            </button>
+          </div>
+        </div>
+      )}
       {/* ✅ Mobile Cards */}
       <div className="md:hidden space-y-4 mt-4">
         {filteredRepairs.map((r) => (
@@ -361,17 +415,26 @@ const RepairsPage = () => {
               <h3 className="font-bold text-gray-800 dark:text-gray-100">
                 {r.customerName}
               </h3>
-              <select
-                value={r.status}
-                onChange={(e) => handleStatusChange(r, e.target.value)}
-                className="border rounded px-2 py-1 text-xs bg-white dark:bg-gray-800 dark:border-gray-600"
-              >
-                <option>في الانتظار</option>
-                <option>جاري العمل</option>
-                <option>مكتمل</option>
-                <option>تم التسليم</option>
-                <option>مرفوض</option>
-              </select>
+
+              <div className="flex items-center gap-2">
+                <select
+                  value={r.status}
+                  onChange={(e) => handleStatusChange(r, e.target.value)}
+                  className="border rounded px-2 py-1 text-xs bg-white dark:bg-gray-800 dark:border-gray-600"
+                >
+                  <option>في الانتظار</option>
+                  <option>جاري العمل</option>
+                  <option>مكتمل</option>
+                  <option>تم التسليم</option>
+                  <option>مرفوض</option>
+                </select>
+                <Button
+                  onClick={() => openContactModal(r)}
+                  className="bg-blue-600 text-white text-xs md:text-sm"
+                >
+                  تواصل
+                </Button>
+              </div>
             </div>
             <p className="text-gray-600 dark:text-gray-300 text-sm">
               <strong>الجهاز:</strong> {r.deviceType} - {r.color || "-"}
