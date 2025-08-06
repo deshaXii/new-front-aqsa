@@ -24,7 +24,6 @@ const NewRepairPage = () => {
   const navigate = useNavigate();
   const { token, user } = useAuthStore();
 
-  // ✅ جلب الفنيين
   useEffect(() => {
     const fetchTechnicians = async () => {
       try {
@@ -57,7 +56,6 @@ const NewRepairPage = () => {
         "https://aqsa-serverless.vercel.app/api/repairs",
         {
           ...form,
-          status: "في الانتظار", // ✅ الحالة الافتراضية
           createdBy: user?.id,
         },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -69,16 +67,13 @@ const NewRepairPage = () => {
     }
   };
 
-  // ✅ تصفية المستلمين الذين لديهم صلاحية استلام الأجهزة
-  const recipients = technicians.filter((t) => t.permissions?.receiveDevices);
-
   return (
     <div className="p-4 max-w-3xl mx-auto">
       <h2 className="text-xl font-bold mb-4">إضافة صيانة جديدة</h2>
       {error && <Notification type="error" message={error} />}
 
       <form onSubmit={handleSubmit} className="space-y-3">
-        {/* ✅ الخانات الأساسية */}
+        {/* خانات الإدخال الصوتي */}
         {[
           ["customerName", "اسم العميل"],
           ["deviceType", "نوع الجهاز"],
@@ -103,7 +98,7 @@ const NewRepairPage = () => {
           </div>
         ))}
 
-        {/* ✅ اختيار الفني */}
+        {/* اختيار الفني المسؤول */}
         <div>
           <label className="block mb-1 font-semibold">الفني المسؤول</label>
           <select
@@ -121,7 +116,7 @@ const NewRepairPage = () => {
           </select>
         </div>
 
-        {/* ✅ اختيار المستلم */}
+        {/* اختيار المستلم - فقط من لديه صلاحية receiveDevice */}
         <div>
           <label className="block mb-1 font-semibold">المستلم</label>
           <select
@@ -131,15 +126,13 @@ const NewRepairPage = () => {
             className="border rounded w-full p-2 bg-white dark:bg-gray-800"
           >
             <option value="">اختر المستلم</option>
-            {recipients.length > 0 ? (
-              recipients.map((t) => (
+            {technicians
+              .filter((t) => t.permissions?.receiveDevice)
+              .map((t) => (
                 <option key={t._id} value={t._id}>
                   {t.name}
                 </option>
-              ))
-            ) : (
-              <option disabled>لا يوجد مستلمين متاحين</option>
-            )}
+              ))}
           </select>
         </div>
 
