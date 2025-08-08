@@ -9,7 +9,7 @@ import cairoFont from "../../assets/fonts/Cairo-Regular-normal.js";
 const InvoicesPage = () => {
   const [stats, setStats] = useState(null);
   const [error, setError] = useState("");
-  const { token } = useAuthStore();
+  const { token, user } = useAuthStore();
 
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -96,6 +96,18 @@ const InvoicesPage = () => {
     link.click();
     document.body.removeChild(link);
   };
+
+  if (
+    user?.role !== "admin" &&
+    !user?.permissions?.accessAccounts &&
+    !user?.permissions?.adminOverride
+  ) {
+    return (
+      <div className="text-center text-red-500 font-bold mt-10">
+        ليس لديك صلاحية الوصول لهذه الصفحة
+      </div>
+    );
+  }
 
   return (
     <div className="p-4">

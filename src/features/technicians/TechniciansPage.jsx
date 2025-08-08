@@ -97,6 +97,18 @@ const TechniciansPage = () => {
     }
   };
 
+  if (
+    user?.role !== "admin" &&
+    !user?.permissions?.accessAccounts &&
+    !user?.permissions?.adminOverride
+  ) {
+    return (
+      <div className="text-center text-red-500 font-bold mt-10">
+        ليس لديك صلاحية الوصول لهذه الصفحة
+      </div>
+    );
+  }
+
   return (
     <div className="p-4">
       <h2 className="text-xl font-bold mb-4">قائمة الفنيين</h2>
@@ -169,6 +181,25 @@ const TechniciansPage = () => {
                 onChange={() => handlePermissionChange("receiveDevice")}
               />{" "}
               استلام الأجهزة
+            </label>
+            {/* ✅ الصلاحية الجديدة */}
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={newTech.permissions?.accessAccounts}
+                onChange={() => handlePermissionChange("accessAccounts")}
+                className="mr-2"
+              />
+              الوصول للحسابات والفواتير
+            </label>
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={newTech.permissions?.adminOverride}
+                onChange={() => handlePermissionChange("adminOverride")}
+                className="mr-2"
+              />
+              صلاحيات المدير
             </label>
           </div>
 

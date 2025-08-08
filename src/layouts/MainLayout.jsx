@@ -12,12 +12,20 @@ const MainLayout = () => {
     navigate("/login", { replace: true });
   };
 
+  const handleUserPermissions = () => {
+    if (user?.permissions?.adminOverride || user?.role === "admin") {
+      return true;
+    } else {
+      return false;
+    }
+  };
   return (
     <div className="min-h-screen flex flex-col bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white">
       <header className="bg-white dark:bg-gray-800 shadow p-4 flex justify-between items-center">
         <h1 className="font-bold text-xl">الأقصي ستور</h1>
         <div className="flex items-center gap-4">
-          {/* <NotificationBell /> */}
+          <NotificationBell />
+
           <ThemeToggle />
           <button
             onClick={handleLogout}
@@ -38,7 +46,7 @@ const MainLayout = () => {
           الصيانات
         </NavLink>
 
-        {user?.role === "admin" && (
+        {handleUserPermissions() && (
           <>
             <NavLink
               to="/technicians"
@@ -66,16 +74,17 @@ const MainLayout = () => {
             >
               الحسابات
             </NavLink>
-
-            <NavLink
-              to="/backup"
-              className={({ isActive }) =>
-                `${isActive ? "active" : ""} text-[12px] sm:text-[16px]`
-              }
-            >
-              النسخ الاحتياطي
-            </NavLink>
           </>
+        )}
+        {user?.role === "admin" && (
+          <NavLink
+            to="/backup"
+            className={({ isActive }) =>
+              `${isActive ? "active" : ""} text-[12px] sm:text-[16px]`
+            }
+          >
+            النسخ الاحتياطي
+          </NavLink>
         )}
       </nav>
 

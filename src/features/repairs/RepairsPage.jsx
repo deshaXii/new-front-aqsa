@@ -336,12 +336,7 @@ const RepairsPage = () => {
                   >
                     عرض
                   </Button>
-                  <Button
-                    onClick={() => navigate(`/repairs/${r._id}`)}
-                    className="text-xs md:text-sm"
-                  >
-                    عرض
-                  </Button>
+
                   <Button
                     onClick={() => openContactModal(r)}
                     className="bg-blue-600 text-white text-xs md:text-sm"

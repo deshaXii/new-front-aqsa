@@ -10,6 +10,12 @@ const AccountsPage = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // useEffect(() => {
+  //   if (!user?.permissions?.accessAccounts && user?.role !== "admin") {
+  //     navigate("/unauthorized");
+  //   }
+  // }, []);
+
   const handleDeleteTransaction = async (id) => {
     if (!window.confirm("هل أنت متأكد من حذف هذه المعاملة؟")) return;
 
@@ -164,7 +170,6 @@ const AccountsPage = () => {
                     key={tech.name}
                     className="text-center bg-white dark:bg-gray-800 border-b"
                   >
-                    <td className="p-2 border">{tech.name}</td>
                     <td className="p-2 border">{tech.name}</td>
                     <td className="p-2 border">{tech.count}</td>
                     <td className="p-2 border">{tech.profit} ج</td>

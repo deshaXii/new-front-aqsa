@@ -1,51 +1,72 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
-import useAuthStore from "../auth/authStore.js";
-import Notification from "../../components/Notification.jsx";
+// frontend/src/pages/NotificationsPage.jsx
+import { useEffect, useState } from "react";
+import {
+  fetchNotifications,
+  markAsRead,
+  clearNotifications,
+} from "../../features/notifications/api.js";
+import useAuthStore from "../../features/auth/authStore.js";
+import Button from "../../components/Button.jsx";
 
 const NotificationsPage = () => {
   const { token } = useAuthStore();
   const [notifications, setNotifications] = useState([]);
 
-  const fetchNotifications = async () => {
-    const { data } = await axios.get(
-      "https://aqsa-serverless.vercel.app/api/notifications",
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
+  const load = async () => {
+    const data = await fetchNotifications(token);
     setNotifications(data);
   };
 
-  const clearAll = async () => {
-    await axios.delete(
-      "https://aqsa-serverless.vercel.app/api/notifications/clear",
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
-    fetchNotifications();
+  const handleRead = async (id) => {
+    await markAsRead(id, token);
+    load();
+  };
+
+  const handleClear = async () => {
+    if (!window.confirm("هل أنت متأكد من حذف كل الإشعارات؟")) return;
+    await clearNotifications(token);
+    load();
   };
 
   useEffect(() => {
-    fetchNotifications();
+    load();
   }, []);
 
   return (
-    <div className="p-4">
-      <h2 className="text-xl font-bold mb-4">الإشعارات</h2>
-      <button
-        onClick={clearAll}
-        className="bg-red-500 text-white px-3 py-1 rounded mb-2"
-      >
-        مسح الكل
-      </button>
+    <div className="p-4 max-w-3xl mx-auto">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold">الإشعارات</h2>
+        <Button onClick={handleClear}>🗑️ مسح الكل</Button>
+      </div>
 
-      {notifications.length === 0 && <p>لا توجد إشعارات</p>}
-
-      {notifications.map((n) => (
-        <Notification key={n._id} type={n.type} message={n.message} />
-      ))}
+      <div className="space-y-3">
+        {notifications.map((n) => (
+          <div
+            key={n._id}
+            className={`p-3 rounded border ${
+              n.read
+                ? "bg-gray-100 dark:bg-gray-700"
+                : "bg-white dark:bg-gray-800 border-lime-600 border-l-4"
+            }`}
+          >
+            <p>{n.message}</p>
+            <div className="text-xs text-gray-500 flex justify-between">
+              <span>{new Date(n.createdAt).toLocaleString()}</span>
+              {!n.read && (
+                <button
+                  onClick={() => handleRead(n._id)}
+                  className="text-blue-600 dark:text-blue-300"
+                >
+                  تعليم كمقروء
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+        {notifications.length === 0 && (
+          <p className="text-center text-gray-500">لا توجد إشعارات حاليًا</p>
+        )}
+      </div>
     </div>
   );
 };

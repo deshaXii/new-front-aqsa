@@ -18,10 +18,6 @@ const ProtectedRoute = ({ children, adminOnly }) => {
   if (!token) {
     return <Navigate to="/login" replace />;
   }
-  if (adminOnly && user?.role !== "admin")
-    return <Navigate to="/backup" replace />;
-  if (adminOnly && user?.role !== "admin")
-    return <Navigate to="/technicians" replace />;
   return children;
 };
 
