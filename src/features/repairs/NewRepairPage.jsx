@@ -82,19 +82,33 @@ const NewRepairPage = () => {
           ["phone", "رقم التليفون"],
         ].map(([name, label]) => (
           <div key={name} className="relative">
-            <InputField
-              label={label}
-              name={name}
-              value={form[name]}
-              onChange={handleChange}
-              placeholder={`ادخل ${label}`}
-              required
-            />
-            <div className="absolute top-[1.8rem] left-[-0.5rem]">
-              <VoiceInput
-                onText={(text) => setForm({ ...form, [name]: text })}
-              />
-            </div>
+            {name !== "color" ? (
+              <>
+                <InputField
+                  label={label}
+                  name={name}
+                  value={form[name]}
+                  onChange={handleChange}
+                  placeholder={`ادخل ${label}`}
+                  required
+                />
+                <div className="absolute top-[1.8rem] left-[-0.5rem]">
+                  <VoiceInput
+                    onText={(text) => setForm({ ...form, [name]: text })}
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="mb-4 input-field">
+                <label className="block mb-1 font-semibold">{label}</label>
+                <input
+                  type="color"
+                  name="color"
+                  value={form[name]}
+                  onChange={handleChange}
+                />
+              </div>
+            )}
           </div>
         ))}
 

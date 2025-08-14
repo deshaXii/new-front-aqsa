@@ -28,7 +28,25 @@ input:-webkit-autofill:active {
     color: #000;
   }
 }
+.ul-list {
+  list-style-type: none;
+}
 
+.ul-list li {
+  display: inline-flex;
+  margin-top: 10px;
+  border: 1px solid #cccccc4a;
+  padding: 10px;
+  border-radius: 10px;
+  column-gap: 20px;
+}
+
+.ul-list li div {
+  display: flex;
+  column-gap: 10px;
+  color: #494949;
+  font-weight: bold;
+}
 nav.navbar a {
   padding: 10px 8px;
   background: #ababab;
@@ -50,13 +68,11 @@ nav.navbar a.active {
   -webkit-box-shadow: 0 0 0 40px #111827 inset !important;
   color: #ffffff !important;
 }
-
-.dark select {
-  background: #111827 !important;
-  color: #ffffff !important;
+select {
+  outline: none;
 }
 .date-filters input {
-  width: 85px;
+  width: 130px;
 }
 .dark nav.navbar a {
   background: #1f2937;

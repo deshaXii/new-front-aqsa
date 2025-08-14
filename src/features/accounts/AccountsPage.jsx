@@ -76,7 +76,7 @@ const AccountsPage = () => {
   }, []);
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="py-4 container mx-auto md:px-60 space-y-4">
       <h2 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-gray-100">
         صفحة الحسابات
       </h2>
@@ -155,7 +155,8 @@ const AccountsPage = () => {
           </div>
 
           {/* ✅ جدول أرباح الفنيين */}
-          <div className="overflow-x-auto shadow-md rounded-lg border border-gray-300 dark:border-gray-700">
+          {/* <div className="overflow-x-auto shadow-md rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 shadow p-4 rounded-lg">
+            <h4 className="mb-3 font-bold">جدول ربح الفنيين</h4>
             <table className="min-w-[600px] w-full text-sm text-gray-800 dark:text-gray-200">
               <thead className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                 <tr>
@@ -177,10 +178,10 @@ const AccountsPage = () => {
                 ))}
               </tbody>
             </table>
-          </div>
+          </div> */}
 
           {/* ✅ جدول تفاصيل الصيانات */}
-          <div className="overflow-x-auto shadow-md rounded-lg border border-gray-300 dark:border-gray-700 mt-6">
+          {/* <div className="overflow-x-auto shadow-md rounded-lg border border-gray-300 dark:border-gray-700 mt-6">
             <table className="min-w-[800px] w-full text-sm text-gray-800 dark:text-gray-200">
               <thead className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                 <tr>
@@ -208,7 +209,7 @@ const AccountsPage = () => {
                 ))}
               </tbody>
             </table>
-          </div>
+          </div> */}
 
           {/* ✅ جدول المعاملات اليدوية */}
           <div className="overflow-x-auto shadow-md rounded-lg border border-gray-300 dark:border-gray-700 mt-6">
@@ -218,6 +219,8 @@ const AccountsPage = () => {
                   <th className="p-3 border">النوع</th>
                   <th className="p-3 border">المبلغ</th>
                   <th className="p-3 border">الوصف</th>
+                  <th className="p-3 border">التاريخ</th>
+                  <th className="p-3 border">الاجراءات</th>
                 </tr>
               </thead>
               <tbody>

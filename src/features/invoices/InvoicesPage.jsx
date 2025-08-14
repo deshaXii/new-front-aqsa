@@ -2,9 +2,6 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import useAuthStore from "../auth/authStore.js";
 import Notification from "../../components/Notification.jsx";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import cairoFont from "../../assets/fonts/Cairo-Regular-normal.js";
 
 const InvoicesPage = () => {
   const [stats, setStats] = useState(null);
@@ -39,63 +36,7 @@ const InvoicesPage = () => {
 
   if (!stats) return <div className="p-4">جاري التحميل...</div>;
 
-  const {
-    totalProfit,
-    totalPartsCost,
-    technicianProfits,
-    repairs,
-    partsByShop,
-  } = stats;
-
-  const exportPDF = () => {
-    const doc = new jsPDF({
-      orientation: "p", // portrait
-      unit: "pt", // points
-      format: "a4", // page size
-    });
-    doc.addFileToVFS("Cairo-Regular.ttf", cairoFont);
-    doc.addFont("Cairo-Regular.ttf", "Cairo", "normal");
-    doc.text("تقرير الفواتير والصيانة", 40, 40);
-
-    autoTable(doc, {
-      startY: 60,
-      head: [["اسم العميل", "الفني", "السعر", "سعر الجملة", "الربح"]],
-      body: repairs.map((r) => [
-        r.customerName,
-        r.technician?.name || "-",
-        `${r.price} ج`,
-        `${r.totalPartsCost} ج`,
-        `${r.profit} ج`,
-      ]),
-    });
-
-    // حفظ الملف مباشرة
-    doc.save(`invoices_${Date.now()}.pdf`);
-  };
-
-  const exportExcel = () => {
-    // ✅ إنشاء ملف CSV بسيط
-    const rows = [
-      ["اسم العميل", "اسم الفني", "السعر", "سعر الجملة", "الربح"],
-      ...repairs.map((r) => [
-        r.customerName,
-        r.technician?.name || "-",
-        r.price,
-        r.totalPartsCost,
-        r.profit,
-      ]),
-    ];
-
-    const csvContent =
-      "data:text/csv;charset=utf-8," + rows.map((e) => e.join(",")).join("\n");
-
-    const link = document.createElement("a");
-    link.setAttribute("href", encodeURI(csvContent));
-    link.setAttribute("download", `invoices_${Date.now()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  const { repairs, partsByShop } = stats;
 
   if (
     user?.role !== "admin" &&
@@ -110,7 +51,7 @@ const InvoicesPage = () => {
   }
 
   return (
-    <div className="p-4">
+    <div className="py-4 container mx-auto md:px-60 ">
       <h2 className="text-xl font-bold mb-4">صفحة الفواتير والإحصائيات</h2>
       {error && <Notification type="error" message={error} />}
 
@@ -141,68 +82,138 @@ const InvoicesPage = () => {
         >
           تحديث
         </button>
-        {/* <button
-          onClick={exportPDF}
-          className="bg-green-600 text-white px-4 py-2 rounded"
-        >
-          تصدير PDF
-        </button>
-        <button
-          onClick={exportExcel}
-          className="bg-yellow-500 text-white px-4 py-2 rounded"
-        >
-          تصدير Excel
-        </button> */}
       </div>
-
-      {/* أرباح الفنيين */}
 
       {/* تفاصيل قطع الغيار حسب المحل */}
       <div className="bg-white dark:bg-gray-800 p-4 rounded shadow mb-4">
-        <h3 className="font-bold mb-2">قطع الغيار حسب المحل</h3>
-        {Object.entries(partsByShop).map(([shop, parts], idx) => (
-          <div key={idx} className="mb-3 border-b pb-2">
-            <p className="font-bold">
-              🏪 {shop} (الإجمالي: {parts.reduce((sum, p) => sum + p.cost, 0)}{" "}
-              ج)
-            </p>
-            <ul className="list-disc list-inside">
-              {parts.map((part, i) => (
-                <li key={i}>
-                  {part.name} - {part.cost} ج
-                  <span className="text-gray-500 ml-2">
-                    (العميل: {part.customerName} - الفني: {part.technicianName})
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+        <h3 className="font-bold mb-5">قطع الغيار حسب المحل</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {Object.entries(partsByShop).map(
+            ([shop, parts], idx) =>
+              parts.reduce((sum, p) => sum + p.cost, 0) > 0 && (
+                <div key={idx} className="border-b pb-2">
+                  <p className="font-bold">
+                    🏪 {shop} (الإجمالي:{" "}
+                    {parts.reduce((sum, p) => sum + p.cost, 0)} ج)
+                  </p>
+                  <ul className="list-disc list-inside ul-list">
+                    {parts
+                      .filter((item) => item.cost > 0)
+                      .map((part, i) => (
+                        <li key={i}>
+                          <div>
+                            <span className="partName">{part.name}</span>
+                            <span className="partCost">{part.cost + "ج"}</span>
+                          </div>
+                          <span className="text-gray-500 ml-2">
+                            ({part.customerName} - {part.technicianName})
+                          </span>
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              )
+          )}
+        </div>
       </div>
 
       {/* تفاصيل الصيانات */}
-      <div className="bg-white dark:bg-gray-800 p-4 rounded shadow">
+      <div className="bg-white dark:bg-gray-800 p-4 rounded shadow overflow-x-auto">
         <h3 className="font-bold mb-2">تفاصيل الصيانات</h3>
-        <table className="min-w-full border text-sm">
+        {/* <div className="block rapairsDetails md:hidden min-w-full border text-sm">
+          {repairs
+            .filter((item) => item.status === "تم التسليم")
+            .map((r) => (
+              <div className="mb-4">
+                <ul className="list">
+                  <li className="userName list-item">
+                    <h5>اسم العميل:</h5>
+                    <span>{r.customerName}</span>
+                  </li>
+                  <li className="userName list-item">
+                    <h5>اسم الفني:</h5>
+                    <span>{r.technician?.name || "-"}</span>
+                  </li>
+                  <li className="userName list-item">
+                    <h5>السعر:</h5>
+                    <span>{r.price} ج</span>
+                  </li>
+                  <li className="userName list-item">
+                    <h5>سعر الجملة:</h5>
+                    <span>
+                      {r.totalPartsCost ? r.totalPartsCost + " ج" : "-"}
+                    </span>
+                  </li>
+                  <li className="userName list-item">
+                    <h5>اجمالي الربح:</h5>
+                    <span>{r.profit} ج</span>
+                  </li>
+                  <li className="userName list-item">
+                    <h5>ربح الفني:</h5>
+                    <span>{r.profit} ج</span>
+                  </li>
+                  <li className="userName list-item">
+                    <h5>ربح المحل:</h5>
+                    <span>{r.profit / 2} ج</span>
+                  </li>
+                </ul>
+              </div>
+            ))}
+        </div> */}
+
+        {/* hidden md:table */}
+        <table className="min-w-full border text-sm md:text-base">
           <thead className="bg-gray-200 dark:bg-gray-700">
             <tr>
-              <th className="p-2 border">اسم العميل</th>
-              <th className="p-2 border">اسم الفني</th>
-              <th className="p-2 border">السعر</th>
-              <th className="p-2 border">سعر الجملة</th>
-              <th className="p-2 border">ربح المحل</th>
+              <th className="p-1 md:p-2 border text-xs md:text-sm">
+                اسم العميل
+              </th>
+              <th className="p-1 md:p-2 border text-xs md:text-sm">
+                اسم الفني
+              </th>
+              <th className="p-1 md:p-2 border text-xs md:text-sm">السعر</th>
+              <th className="p-1 md:p-2 border text-xs md:text-sm">
+                سعر الجملة
+              </th>
+              <th className="p-1 md:p-2 border text-xs md:text-sm">
+                اجمالي الربح
+              </th>
+              <th className="p-1 md:p-2 border text-xs md:text-sm">
+                ربح الفني
+              </th>
+              <th className="p-1 md:p-2 border text-xs md:text-sm">
+                ربح المحل
+              </th>
             </tr>
           </thead>
           <tbody>
-            {repairs.map((r) => (
-              <tr key={r._id} className="text-center">
-                <td className="p-2 border">{r.customerName}</td>
-                <td className="p-2 border">{r.technician?.name || "-"}</td>
-                <td className="p-2 border">{r.price} ج</td>
-                <td className="p-2 border">{r.totalPartsCost} ج</td>
-                <td className="p-2 border">{r.profit} ج</td>
-              </tr>
-            ))}
+            {repairs
+              .filter((item) => item.status === "تم التسليم")
+              .map((r) => (
+                <tr key={r._id} className="text-center">
+                  <td className="p-1 md:p-2 border text-xs md:text-sm">
+                    {r.customerName}
+                  </td>
+                  <td className="p-1 md:p-2 border text-xs md:text-sm">
+                    {r.technician?.name || "-"}
+                  </td>
+                  <td className="p-1 md:p-2 border text-xs md:text-sm">
+                    {r.price} ج
+                  </td>
+                  <td className="p-1 md:p-2 border text-xs md:text-sm">
+                    {r.totalPartsCost ? r.totalPartsCost + " ج" : "-"}
+                  </td>
+                  <td className="p-1 md:p-2 border text-xs md:text-sm">
+                    {r.profit} ج
+                  </td>
+                  <td className="p-1 md:p-2 border text-xs md:text-sm">
+                    {r.profit / 2} ج
+                  </td>
+                  <td className="p-1 md:p-2 border text-xs md:text-sm">
+                    {r.profit / 2} ج
+                  </td>
+                </tr>
+              ))}
           </tbody>
         </table>
       </div>

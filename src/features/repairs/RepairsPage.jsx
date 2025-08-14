@@ -280,8 +280,11 @@ const RepairsPage = () => {
                 <td className="p-2 border border-gray-200 dark:border-gray-700">
                   {r.issue || "-"}
                 </td>
-                <td className="p-2 border border-gray-200 dark:border-gray-700">
-                  {r.color || "-"}
+                <td
+                  className={`p-2 border border-gray-200 dark:border-gray-700`}
+                  style={{ backgroundColor: r.color }}
+                >
+                  {"-"}
                 </td>
                 <td className="p-2 border border-gray-200 dark:border-gray-700">
                   {r.phone}
@@ -293,7 +296,25 @@ const RepairsPage = () => {
                   <select
                     value={r.status}
                     onChange={(e) => handleStatusChange(r, e.target.value)}
-                    className="border rounded px-2 py-1 text-xs md:text-sm bg-white dark:bg-gray-800 dark:border-gray-600"
+                    className={`border rounded px-2 py-1 text-xs md:text-sm 
+                      ${
+                        r.status === "تم التسليم"
+                          ? "bg-green-600 text-white "
+                          : ""
+                      } 
+                      ${r.status === "مرفوض" ? "bg-red-600 text-white" : ""}
+                      ${
+                        r.status === "جاري العمل"
+                          ? "bg-yellow-500 text-white"
+                          : ""
+                      }
+                      ${
+                        r.status === "في الانتظار"
+                          ? "bg-gray-400 text-white"
+                          : ""
+                      }
+                      ${r.status === "مكتمل" ? "bg-blue-600 text-white" : ""}
+                      `}
                   >
                     <option>في الانتظار</option>
                     <option>جاري العمل</option>
@@ -323,7 +344,7 @@ const RepairsPage = () => {
                     : "-"}
                 </td>
                 <td className="p-2 border border-gray-200 dark:border-gray-700">
-                  {r.parts?.length
+                  {r.parts?.length && r.parts[0].cost
                     ? r.parts
                         .map((p, idx) => `${p.name} (${p.cost}ج)`)
                         .join(", ")

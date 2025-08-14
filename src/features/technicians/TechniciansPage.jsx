@@ -110,7 +110,7 @@ const TechniciansPage = () => {
   }
 
   return (
-    <div className="p-4">
+    <div className="py-4 container mx-auto md:px-60">
       <h2 className="text-xl font-bold mb-4">قائمة الفنيين</h2>
       {error && <Notification type="error" message={error} />}
 
