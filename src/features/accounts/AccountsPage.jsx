@@ -9,6 +9,11 @@ const AccountsPage = () => {
   const [summary, setSummary] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [filters, setFilters] = useState({
+    dateFilter: "today",
+    startDate: "",
+    endDate: "",
+  });
 
   // useEffect(() => {
   //   if (!user?.permissions?.accessAccounts && user?.role !== "admin") {
@@ -37,12 +42,12 @@ const AccountsPage = () => {
     amount: "",
     note: "",
   });
-
-  const fetchSummary = async () => {
+  const fetchSummary = async (dateFilter = filters.dateFilter) => {
     setLoading(true);
     try {
+      const params = new URLSearchParams({ dateFilter }).toString();
       const { data } = await axios.get(
-        "https://aqsa-serverless.vercel.app/api/accounts/summary",
+        `https://aqsa-serverless.vercel.app/api/accounts/summary?${params}&dateFilter=today`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setSummary(data);
@@ -51,6 +56,11 @@ const AccountsPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDateFilterChange = (filter) => {
+    setFilters((prev) => ({ ...prev, dateFilter: filter }));
+    fetchSummary(filter);
   };
 
   const addTransaction = async () => {
@@ -71,6 +81,23 @@ const AccountsPage = () => {
     }
   };
 
+  const handleFilterChange = (key, value) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const applyDateFilter = () => {
+    fetchSummary();
+  };
+
+  const resetFilters = () => {
+    setFilters({
+      dateFilter: "today",
+      startDate: "",
+      endDate: "",
+    });
+    fetchSummary();
+  };
+
   useEffect(() => {
     fetchSummary();
   }, []);
@@ -83,7 +110,53 @@ const AccountsPage = () => {
 
       {error && <Notification type="error" message={error} />}
       {loading && <p className="text-gray-500">جارٍ التحميل...</p>}
+      <div className="bg-white dark:bg-gray-800 shadow p-4 rounded-lg">
+        <h3 className="font-bold mb-3 text-gray-800 dark:text-gray-100">
+          فلترة حسب التاريخ
+        </h3>
 
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
+          <select
+            value={filters.dateFilter}
+            onChange={(e) => handleFilterChange("dateFilter", e.target.value)}
+            className="border rounded px-3 py-2 dark:bg-gray-900 dark:text-white"
+          >
+            <option value="today">اليوم</option>
+            <option value="yesterday">أمس</option>
+            <option value="week">آخر 7 أيام</option>
+            <option value="month">آخر 30 يوم</option>
+            <option value="custom">مخصص</option>
+          </select>
+
+          {filters.dateFilter === "custom" && (
+            <>
+              <input
+                type="date"
+                value={filters.startDate}
+                onChange={(e) =>
+                  handleFilterChange("startDate", e.target.value)
+                }
+                className="border rounded px-3 py-2 dark:bg-gray-900 dark:text-white"
+              />
+              <input
+                type="date"
+                value={filters.endDate}
+                onChange={(e) => handleFilterChange("endDate", e.target.value)}
+                className="border rounded px-3 py-2 dark:bg-gray-900 dark:text-white"
+              />
+            </>
+          )}
+        </div>
+
+        <div className="flex gap-3">
+          <Button onClick={applyDateFilter} className="bg-blue-600 text-white">
+            تطبيق الفلتر
+          </Button>
+          <Button onClick={resetFilters} className="bg-gray-500 text-white">
+            عرض اليوم
+          </Button>
+        </div>
+      </div>
       {summary && (
         <>
           {/* ✅ ملخص الحسابات */}

@@ -24,13 +24,32 @@ const RepairsPage = () => {
   const [showContactModal, setShowContactModal] = useState(false);
   const [searchFormShown, setSearchFormShown] = useState(true);
   const [selectedRepair, setSelectedRepair] = useState(null);
+  // 🔹 Pagination State
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalRepairs: 0,
+  });
   const [finalPrice, setFinalPrice] = useState("");
   const [parts, setParts] = useState([{ name: "", cost: "", source: "" }]);
+  const [technicians, setTechnicians] = useState([]);
 
-  const fetchRepairs = async () => {
+  const [filters, setFilters] = useState({
+    dateFilter: "today",
+    technician: "",
+    repairId: "",
+  });
+
+  const fetchRepairs = async (page = 1) => {
     try {
+      const params = new URLSearchParams({
+        page,
+        limit: 30,
+        ...filters,
+      }).toString();
+
       const { data } = await axios.get(
-        "https://aqsa-serverless.vercel.app/api/repairs",
+        `https://aqsa-serverless.vercel.app/api/repairs?${params}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -38,14 +57,19 @@ const RepairsPage = () => {
 
       const filtered =
         user?.role === "admin" || user?.permissions?.receiveDevice
-          ? data
-          : data.filter(
+          ? data.repairs
+          : data.repairs.filter(
               (r) =>
                 r.technician?._id === user?.id || r.recipient?._id === user?.id
             );
 
       setRepairs(filtered);
+      setPagination({
+        totalPages: data.totalPages,
+        currentPage: data.currentPage,
+      });
     } catch (err) {
+      console.log(err);
       setError("فشل في تحميل بيانات الصيانة");
     }
   };
@@ -198,6 +222,38 @@ const RepairsPage = () => {
         ref={searchFormRef}
         className="hidden sm:grid grid-cols-1 md:grid-cols-4 gap-3 mb-6"
       >
+        <select
+          value={filters.dateFilter}
+          onChange={(e) =>
+            setFilters({ ...filters, dateFilter: e.target.value })
+          }
+        >
+          <option value="today">صيانات اليوم</option>
+          <option value="yesterday">صيانات الأمس</option>
+          <option value="all">جميع الصيانات</option>
+        </select>
+
+        <select
+          value={filters.technician}
+          onChange={(e) =>
+            setFilters({ ...filters, technician: e.target.value })
+          }
+        >
+          <option value="">كل الفنيين</option>
+          {users.map((t) => (
+            <option key={t._id} value={t._id}>
+              {t.name}
+            </option>
+          ))}
+        </select>
+
+        <input
+          placeholder="بحث برقم الصيانة"
+          value={filters.repairId}
+          onChange={(e) => setFilters({ ...filters, repairId: e.target.value })}
+        />
+
+        <Button onClick={() => fetchRepairs(1)}>بحث</Button>
         <input
           placeholder="بحث بالاسم / الهاتف / الجهاز"
           value={search}
@@ -238,6 +294,7 @@ const RepairsPage = () => {
           <thead className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
             <tr>
               {[
+                "الكود",
                 "اسم العميل",
                 "نوع الجهاز",
                 "العطل",
@@ -271,6 +328,7 @@ const RepairsPage = () => {
                     : "bg-gray-50 dark:bg-gray-900"
                 }`}
               >
+                <td>{r.repairId}</td>
                 <td className="p-2 border border-gray-200 dark:border-gray-700">
                   {r.customerName}
                 </td>
@@ -575,6 +633,49 @@ const RepairsPage = () => {
           </div>
         </div>
       )}
+
+      {pagination.totalPages > 1 && (
+        <div className="flex justify-center mt-6 gap-2">
+          {/* Previous Button */}
+          <Button
+            onClick={() => fetchRepairs(pagination.currentPage - 1)}
+            disabled={pagination.currentPage === 1}
+            className="px-4 py-2"
+          >
+            السابق
+          </Button>
+
+          {/* Page Numbers */}
+          {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map(
+            (page) => (
+              <Button
+                key={page}
+                onClick={() => fetchRepairs(page)}
+                className={`px-4 py-2 ${
+                  page === pagination.currentPage
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-200 dark:bg-gray-700"
+                }`}
+              >
+                {page}
+              </Button>
+            )
+          )}
+
+          {/* Next Button */}
+          <Button
+            onClick={() => fetchRepairs(pagination.currentPage + 1)}
+            disabled={pagination.currentPage === pagination.totalPages}
+            className="px-4 py-2"
+          >
+            التالي
+          </Button>
+        </div>
+      )}
+
+      <div className="text-center mt-4 text-sm text-gray-600 dark:text-gray-400">
+        عرض {repairs.length} من أصل {pagination.totalRepairs} صيانة
+      </div>
 
       {filteredRepairs.length === 0 && (
         <p className="text-center text-gray-500 dark:text-gray-400 mt-4">
