@@ -65,7 +65,7 @@ export default function InvoicesPage() {
   useEffect(() => {
     load();
   }, [quick, startDate, endDate]);
-
+  console.log(byVendor);
   return (
     <div className="space-y-4">
       <header className="flex items-center justify-between">
@@ -137,8 +137,8 @@ export default function InvoicesPage() {
             <tbody>
               {byVendor.map((v, i) => (
                 <tr key={i} className="odd:bg-gray-50 dark:odd:bg-gray-700/40">
-                  <Td>{v.vendor || "—"}</Td>
-                  <Td>{v.source || "—"}</Td>
+                  <Td>{v._id.vendor || "—"}</Td>
+                  <Td>{v._id.source || "—"}</Td>
                   <Td>{v.count || 0}</Td>
                   <Td>{v.total || 0}</Td>
                 </tr>

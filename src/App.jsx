@@ -49,13 +49,14 @@ export default function App() {
             <Route path="/invoices" element={<InvoicesPage />} />
             <Route path="/backup" element={<BackupPage />} />
           </Route>
-          <Route element={<RequirePermRoute perm="accounts" />}>
+          {/* توحيد اسم الصلاحية */}
+          <Route element={<RequirePermRoute perm="accessAccounts" />}>
             <Route path="/accounts" element={<AccountsPage />} />
           </Route>
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route element={<RequirePermRoute perm="settings" />}>
             <Route path="/settings" element={<SettingsPage />} />
-          </Route>{" "}
+          </Route>
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/chat/dm/:userId" element={<DirectChatPage />} />
         </Route>

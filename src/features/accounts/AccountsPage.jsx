@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import API from "../../lib/api";
 import formatDate from "../../utils/formatDate";
 
@@ -16,16 +16,64 @@ export default function AccountsPage() {
     d.setDate(d.getDate() - 1);
     return ymdLocal(d);
   }, []);
+
   const [quick, setQuick] = useState("today");
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(today);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
+
+  // خريطة أسماء الفنيين: id => name
+  const [techMap, setTechMap] = useState({});
+  // ملخّص جاهز للعرض بالشكل الذي تتوقعه الصفحة
   const [summary, setSummary] = useState({
     totals: {},
     perTechnician: [],
     transactions: [],
   });
+  // نحتفظ بآخر استجابة خام لإعادة التطبيع لما أسماء الفنيين توصل
+  const lastRawRef = useRef(null);
+
+  useEffect(() => {
+    // تحميل الفنيين مرة واحدة لبناء خريطة الأسماء
+    (async () => {
+      try {
+        const techs = await API.get("/technicians").then((r) => r.data || []);
+        const map = {};
+        techs.forEach((t) => (map[t._id] = t.name || t.username || "—"));
+        setTechMap(map);
+      } catch {
+        setTechMap({});
+      }
+    })();
+  }, []);
+
+  function normalizeApi(data, techMapArg) {
+    const sum = data?.summary || {};
+    const txs = data?.txs || [];
+
+    const totals = {
+      grossRevenue: Number(sum.grossRevenue || 0),
+      partsCost: Number(sum.partsCost || 0),
+      transactionsIn: Number(sum.transactionsIn || 0),
+      transactionsOut: Number(sum.transactionsOut || 0),
+      netCash: Number(sum.net || 0),
+    };
+
+    const perTechnician = (sum.perTechnician || []).map((t) => ({
+      techId: t.technician || t.techId || "—",
+      techName: techMapArg?.[t.technician] || t.techName || "—",
+      deliveredCount:
+        typeof t.deliveredCount === "number" ? t.deliveredCount : "—",
+      netProfit: Number(
+        typeof t.netProfit === "number" ? t.netProfit : t.profit || 0
+      ),
+      techShare: Number(t.techShare || 0),
+      shopShare: Number(t.shopShare || 0),
+    }));
+
+    return { totals, perTechnician, transactions: txs };
+  }
 
   function applyQuick(k) {
     setQuick(k);
@@ -51,24 +99,43 @@ export default function AccountsPage() {
         if (endDate) params.endDate = endDate;
       }
       const { data } = await API.get("/accounts/summary", { params });
-      setSummary(data);
+      lastRawRef.current = data;
+      setSummary(normalizeApi(data, techMap));
     } catch (e) {
       setErr(e?.response?.data?.message || "تعذر تحميل ملخص الحسابات");
     } finally {
       setLoading(false);
     }
   }
+
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quick, startDate, endDate]);
+
+  // لو خريطة الأسماء اتحدثت بعد ما حمّلنا الداتا، نعيد تطبيع نفس الداتا بدون نداء جديد
+  useEffect(() => {
+    if (lastRawRef.current) {
+      setSummary(normalizeApi(lastRawRef.current, techMap));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [techMap]);
 
   return (
     <div className="space-y-4">
       <header className="flex items-center justify-between">
         <h1 className="text-xl font-bold">الحسابات</h1>
+        <button
+          onClick={load}
+          className="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+        >
+          تحديث
+        </button>
       </header>
 
       {/* فلاتر */}
@@ -167,7 +234,7 @@ export default function AccountsPage() {
                     className="odd:bg-gray-50 dark:odd:bg-gray-700/40"
                   >
                     <Td>{t.techName || t.techId}</Td>
-                    <Td>{t.deliveredCount}</Td>
+                    <Td>{t.deliveredCount ?? "—"}</Td>
                     <Td>{Math.round(t.netProfit)}</Td>
                     <Td>{Math.round(t.techShare)}</Td>
                     <Td>{Math.round(t.shopShare)}</Td>
@@ -176,7 +243,7 @@ export default function AccountsPage() {
               ) : (
                 <tr>
                   <td colSpan={5} className="p-3 text-center opacity-70">
-                    لا بيانات
+                    {loading ? "…" : "لا بيانات"}
                   </td>
                 </tr>
               )}
@@ -274,6 +341,7 @@ function TransactionsBlock({ startDate, endDate }) {
           </button>
         </form>
       </div>
+
       <div className="p-3 rounded-2xl bg-white dark:bg-gray-800 shadow-sm lg:col-span-2">
         <h2 className="font-semibold mb-3">كل المعاملات داخل الفترة</h2>
         <div className="overflow-x-auto">

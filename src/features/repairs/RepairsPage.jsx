@@ -33,19 +33,23 @@ function ymdLocal(d) {
 
 export default function RepairsPage() {
   const { user } = useAuthStore();
-  const canViewAll =
-    user?.role === "admin" ||
-    user?.permissions?.adminOverride ||
-    user?.permissions?.addRepair ||
-    user?.permissions?.receiveDevice;
 
   const isAdmin = user?.role === "admin" || user?.permissions?.adminOverride;
+  const canViewAll =
+    isAdmin || user?.permissions?.addRepair || user?.permissions?.receiveDevice;
+
   const canEditAll = isAdmin || user?.permissions?.editRepair;
   const canAddRepair =
     isAdmin ||
     user?.permissions?.adminOverride ||
     user?.permissions?.addRepair ||
     user?.permissions?.receiveDevice;
+
+  // صلاحية الحذف
+  const canDeleteAll =
+    isAdmin ||
+    user?.permissions?.adminOverride ||
+    user?.permissions?.deleteRepair;
 
   // لعرض/إخفاء الفلاتر
   const canUseRepairFilters = isAdmin || user?.permissions?.editRepair;
@@ -66,6 +70,9 @@ export default function RepairsPage() {
   const [techs, setTechs] = useState([]);
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // حذف (حالة زر)
+  const [deletingId, setDeletingId] = useState(null);
 
   // Modal (تسليم)
   const [deliverOpen, setDeliverOpen] = useState(false);
@@ -131,7 +138,7 @@ export default function RepairsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // حمّل تلقائيًا عند تغير الفلاتر (يعالج مشكلة الضغط مرتين)
+  // حمّل تلقائيًا عند تغير الفلاتر
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -192,6 +199,25 @@ export default function RepairsPage() {
       await load();
     } catch (e) {
       alert(e?.response?.data?.message || "حدث خطأ أثناء تحديث الحالة");
+    }
+  }
+
+  // ====== حذف صيانة ======
+  async function handleDelete(r) {
+    if (!canDeleteAll) return;
+    const confirm = window.prompt(
+      `للتأكيد اكتب كلمة: حذف\n#${r.repairId} — ${r.deviceType} — ${r.customerName}`,
+      ""
+    );
+    if (confirm !== "حذف") return;
+    try {
+      setDeletingId(r._id);
+      await API.delete(`/repairs/${r._id}`);
+      await load();
+    } catch (e) {
+      alert(e?.response?.data?.message || "تعذر حذف الصيانة");
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -499,6 +525,17 @@ export default function RepairsPage() {
                             تعديل
                           </Link>
                         )}
+                        {canDeleteAll && (
+                          <button
+                            onClick={() => handleDelete(r)}
+                            disabled={deletingId === r._id}
+                            className="px-2 py-1 rounded-lg bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200 disabled:opacity-50"
+                            aria-label={`حذف الصيانة رقم ${r.repairId}`}
+                            title="حذف"
+                          >
+                            {deletingId === r._id ? "جارٍ…" : "حذف"}
+                          </button>
+                        )}
                       </div>
                     </Td>
                   </tr>
@@ -577,6 +614,17 @@ export default function RepairsPage() {
                   >
                     تعديل
                   </Link>
+                )}
+                {canDeleteAll && (
+                  <button
+                    onClick={() => handleDelete(r)}
+                    disabled={deletingId === r._id}
+                    className="px-3 py-1 rounded-lg bg-red-600 text-white disabled:opacity-50"
+                    aria-label={`حذف الصيانة رقم ${r.repairId}`}
+                    title="حذف"
+                  >
+                    {deletingId === r._id ? "جارٍ…" : "حذف"}
+                  </button>
                 )}
               </div>
             </div>
