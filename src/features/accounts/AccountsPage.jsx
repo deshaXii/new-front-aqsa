@@ -1,340 +1,365 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
-import useAuthStore from "../auth/authStore.js";
-import Notification from "../../components/Notification.jsx";
-import Button from "../../components/Button.jsx";
+import { useEffect, useMemo, useState } from "react";
+import API from "../../lib/api";
+import formatDate from "../../utils/formatDate";
 
-const AccountsPage = () => {
-  const { token } = useAuthStore();
-  const [summary, setSummary] = useState(null);
-  const [error, setError] = useState("");
+function ymdLocal(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+export default function AccountsPage() {
+  const today = useMemo(() => ymdLocal(new Date()), []);
+  const yesterday = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return ymdLocal(d);
+  }, []);
+  const [quick, setQuick] = useState("today");
+  const [startDate, setStartDate] = useState(today);
+  const [endDate, setEndDate] = useState(today);
   const [loading, setLoading] = useState(false);
-  const [filters, setFilters] = useState({
-    dateFilter: "today",
-    startDate: "",
-    endDate: "",
+  const [err, setErr] = useState("");
+  const [summary, setSummary] = useState({
+    totals: {},
+    perTechnician: [],
+    transactions: [],
   });
 
-  // useEffect(() => {
-  //   if (!user?.permissions?.accessAccounts && user?.role !== "admin") {
-  //     navigate("/unauthorized");
-  //   }
-  // }, []);
-
-  const handleDeleteTransaction = async (id) => {
-    if (!window.confirm("هل أنت متأكد من حذف هذه المعاملة؟")) return;
-
-    try {
-      await axios.delete(
-        `https://aqsa-serverless.vercel.app/api/accounts/${id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setTransactions((prev) => prev.filter((t) => t._id !== id));
-    } catch (err) {
-      alert("فشل في حذف المعاملة");
+  function applyQuick(k) {
+    setQuick(k);
+    if (k === "today") {
+      setStartDate(today);
+      setEndDate(today);
+    } else if (k === "yesterday") {
+      setStartDate(yesterday);
+      setEndDate(yesterday);
+    } else if (k === "all") {
+      setStartDate("");
+      setEndDate("");
     }
-  };
+  }
 
-  const [newTransaction, setNewTransaction] = useState({
-    type: "داخل",
-    amount: "",
-    note: "",
-  });
-  const fetchSummary = async (dateFilter = filters.dateFilter) => {
+  async function load() {
     setLoading(true);
+    setErr("");
     try {
-      const params = new URLSearchParams({ dateFilter }).toString();
-      const { data } = await axios.get(
-        `https://aqsa-serverless.vercel.app/api/accounts/summary?${params}&dateFilter=today`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const params = {};
+      if (quick !== "all") {
+        if (startDate) params.startDate = startDate;
+        if (endDate) params.endDate = endDate;
+      }
+      const { data } = await API.get("/accounts/summary", { params });
       setSummary(data);
-    } catch (err) {
-      setError("فشل في تحميل ملخص الحسابات");
+    } catch (e) {
+      setErr(e?.response?.data?.message || "تعذر تحميل ملخص الحسابات");
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleDateFilterChange = (filter) => {
-    setFilters((prev) => ({ ...prev, dateFilter: filter }));
-    fetchSummary(filter);
-  };
-
-  const addTransaction = async () => {
-    if (!newTransaction.amount) return alert("الرجاء إدخال المبلغ");
-
-    try {
-      await axios.post(
-        "https://aqsa-serverless.vercel.app/api/accounts",
-        newTransaction,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setNewTransaction({ type: "داخل", amount: "", note: "" });
-      fetchSummary();
-    } catch (err) {
-      alert("فشل في إضافة المعاملة");
-    }
-  };
-
-  const handleFilterChange = (key, value) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const applyDateFilter = () => {
-    fetchSummary();
-  };
-
-  const resetFilters = () => {
-    setFilters({
-      dateFilter: "today",
-      startDate: "",
-      endDate: "",
-    });
-    fetchSummary();
-  };
-
+  }
   useEffect(() => {
-    fetchSummary();
+    load();
   }, []);
+  useEffect(() => {
+    load();
+  }, [quick, startDate, endDate]);
 
   return (
-    <div className="py-4 container mx-auto md:px-60 space-y-4">
-      <h2 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-gray-100">
-        صفحة الحسابات
-      </h2>
+    <div className="space-y-4">
+      <header className="flex items-center justify-between">
+        <h1 className="text-xl font-bold">الحسابات</h1>
+      </header>
 
-      {error && <Notification type="error" message={error} />}
-      {loading && <p className="text-gray-500">جارٍ التحميل...</p>}
-      <div className="bg-white dark:bg-gray-800 shadow p-4 rounded-lg">
-        <h3 className="font-bold mb-3 text-gray-800 dark:text-gray-100">
-          فلترة حسب التاريخ
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
-          <select
-            value={filters.dateFilter}
-            onChange={(e) => handleFilterChange("dateFilter", e.target.value)}
-            className="border rounded px-3 py-2 dark:bg-gray-900 dark:text-white"
+      {/* فلاتر */}
+      <section className="p-3 rounded-2xl bg-white dark:bg-gray-800 shadow-sm space-y-2">
+        <div className="flex flex-wrap gap-2">
+          <Btn
+            label="اليوم"
+            active={quick === "today"}
+            onClick={() => applyQuick("today")}
+          />
+          <Btn
+            label="أمس"
+            active={quick === "yesterday"}
+            onClick={() => applyQuick("yesterday")}
+          />
+          <Btn
+            label="كل الأوقات"
+            active={quick === "all"}
+            onClick={() => applyQuick("all")}
+          />
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => {
+              setStartDate(e.target.value);
+              setQuick("custom");
+            }}
+            className="px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-700"
+          />
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => {
+              setEndDate(e.target.value);
+              setQuick("custom");
+            }}
+            className="px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-700"
+          />
+          <button
+            onClick={load}
+            className="px-4 py-2 rounded-xl bg-blue-600 text-white"
           >
-            <option value="today">اليوم</option>
-            <option value="yesterday">أمس</option>
-            <option value="week">آخر 7 أيام</option>
-            <option value="month">آخر 30 يوم</option>
-            <option value="custom">مخصص</option>
+            تطبيق
+          </button>
+        </div>
+      </section>
+
+      {err && (
+        <div className="p-3 rounded-xl bg-red-50 text-red-800">{err}</div>
+      )}
+
+      {/* ملخص عام */}
+      <section className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <Card
+          title="إجمالي الدخل (الصيانة المسلّمة)"
+          value={summary.totals?.grossRevenue || 0}
+        />
+        <Card
+          title="إجمالي قطع الغيار"
+          value={summary.totals?.partsCost || 0}
+        />
+        <Card
+          title="إجمالي الداخل"
+          value={summary.totals?.transactionsIn || 0}
+        />
+        <Card
+          title="إجمالي الخارج"
+          value={summary.totals?.transactionsOut || 0}
+        />
+        <Card
+          className="lg:col-span-4"
+          title="الصافي"
+          value={summary.totals?.netCash || 0}
+        />
+      </section>
+
+      {/* ربح كل فني */}
+      <section className="p-3 rounded-2xl bg-white dark:bg-gray-800 shadow-sm">
+        <h2 className="font-semibold mb-3">ربح كل فني</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-right">
+                <Th>الفني</Th>
+                <Th>عدد المسلّم</Th>
+                <Th>صافي الربح</Th>
+                <Th>نصيب الفني</Th>
+                <Th>نصيب المحل</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {summary.perTechnician?.length ? (
+                summary.perTechnician.map((t, i) => (
+                  <tr
+                    key={i}
+                    className="odd:bg-gray-50 dark:odd:bg-gray-700/40"
+                  >
+                    <Td>{t.techName || t.techId}</Td>
+                    <Td>{t.deliveredCount}</Td>
+                    <Td>{Math.round(t.netProfit)}</Td>
+                    <Td>{Math.round(t.techShare)}</Td>
+                    <Td>{Math.round(t.shopShare)}</Td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="p-3 text-center opacity-70">
+                    لا بيانات
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* المعاملات + فورم */}
+      <TransactionsBlock startDate={startDate} endDate={endDate} />
+    </div>
+  );
+}
+
+function TransactionsBlock({ startDate, endDate }) {
+  const [list, setList] = useState([]);
+  const [f, setF] = useState({
+    type: "in",
+    amount: "",
+    description: "",
+    date: ymdLocal(new Date()),
+  });
+  const [loading, setLoading] = useState(false);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const { data } = await API.get("/accounts/transactions", {
+        params: { startDate, endDate },
+      });
+      setList(data || []);
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => {
+    load();
+  }, [startDate, endDate]);
+
+  async function submit(e) {
+    e.preventDefault();
+    if (!f.amount) return;
+    await API.post("/accounts/transactions", {
+      ...f,
+      amount: Number(f.amount),
+    });
+    setF({
+      type: "in",
+      amount: "",
+      description: "",
+      date: ymdLocal(new Date()),
+    });
+    load();
+  }
+
+  async function remove(id) {
+    await API.delete(`/accounts/transactions/${id}`);
+    load();
+  }
+
+  return (
+    <section className="grid lg:grid-cols-3 gap-3">
+      <div className="p-3 rounded-2xl bg-white dark:bg-gray-800 shadow-sm">
+        <h2 className="font-semibold mb-3">معاملة جديدة</h2>
+        <form onSubmit={submit} className="space-y-2">
+          <select
+            value={f.type}
+            onChange={(e) => setF({ ...f, type: e.target.value })}
+            className="w-full px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-700"
+          >
+            <option value="in">داخل</option>
+            <option value="out">خارج</option>
           </select>
-
-          {filters.dateFilter === "custom" && (
-            <>
-              <input
-                type="date"
-                value={filters.startDate}
-                onChange={(e) =>
-                  handleFilterChange("startDate", e.target.value)
-                }
-                className="border rounded px-3 py-2 dark:bg-gray-900 dark:text-white"
-              />
-              <input
-                type="date"
-                value={filters.endDate}
-                onChange={(e) => handleFilterChange("endDate", e.target.value)}
-                className="border rounded px-3 py-2 dark:bg-gray-900 dark:text-white"
-              />
-            </>
-          )}
-        </div>
-
-        <div className="flex gap-3">
-          <Button onClick={applyDateFilter} className="bg-blue-600 text-white">
-            تطبيق الفلتر
-          </Button>
-          <Button onClick={resetFilters} className="bg-gray-500 text-white">
-            عرض اليوم
-          </Button>
-        </div>
+          <input
+            type="number"
+            value={f.amount}
+            onChange={(e) => setF({ ...f, amount: e.target.value })}
+            className="w-full px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-700"
+            placeholder="المبلغ"
+          />
+          <input
+            type="date"
+            value={f.date}
+            onChange={(e) => setF({ ...f, date: e.target.value })}
+            className="w-full px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-700"
+          />
+          <textarea
+            value={f.description}
+            onChange={(e) => setF({ ...f, description: e.target.value })}
+            className="w-full px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-700"
+            placeholder="الوصف (اختياري)"
+          />
+          <button className="px-4 py-2 rounded-xl bg-blue-600 text-white">
+            حفظ
+          </button>
+        </form>
       </div>
-      {summary && (
-        <>
-          {/* ✅ ملخص الحسابات */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white dark:bg-gray-800 shadow p-4 rounded-lg text-center">
-              <p className="font-bold text-lg text-green-600">إجمالي الربح</p>
-              <p>{summary.totalProfit} ج</p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 shadow p-4 rounded-lg text-center">
-              <p className="font-bold text-lg text-red-600">تكلفة قطع الغيار</p>
-              <p>{summary.totalPartsCost} ج</p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 shadow p-4 rounded-lg text-center">
-              <p className="font-bold text-lg text-blue-600">إجمالي الداخل</p>
-              <p>{summary.totalIn} ج</p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 shadow p-4 rounded-lg text-center">
-              <p className="font-bold text-lg text-orange-600">إجمالي الخارج</p>
-              <p>{summary.totalOut} ج</p>
-            </div>
-            <div className="col-span-2 md:col-span-4 bg-white dark:bg-gray-800 shadow p-4 rounded-lg text-center">
-              <p className="font-bold text-xl text-green-700">صافي ربح المحل</p>
-              <p className="text-2xl">{summary.netProfit} ج</p>
-            </div>
-          </div>
-
-          {/* ✅ إضافة معاملة */}
-          <div className="bg-white dark:bg-gray-800 shadow p-4 rounded-lg">
-            <h3 className="font-bold mb-3 text-gray-800 dark:text-gray-100">
-              إضافة معاملة جديدة
-            </h3>
-            <div className="flex flex-col md:flex-row gap-3">
-              <select
-                value={newTransaction.type}
-                onChange={(e) =>
-                  setNewTransaction({ ...newTransaction, type: e.target.value })
-                }
-                className="border rounded px-3 py-2 dark:bg-gray-900 dark:text-white"
-              >
-                <option>داخل</option>
-                <option>خارج</option>
-              </select>
-              <input
-                type="number"
-                placeholder="المبلغ"
-                value={newTransaction.amount}
-                onChange={(e) =>
-                  setNewTransaction({
-                    ...newTransaction,
-                    amount: Number(e.target.value),
-                  })
-                }
-                className="border rounded px-3 py-2 flex-1 dark:bg-gray-900 dark:text-white"
-              />
-              <input
-                type="text"
-                placeholder="الوصف"
-                value={newTransaction.note}
-                onChange={(e) =>
-                  setNewTransaction({
-                    ...newTransaction,
-                    note: e.target.value,
-                  })
-                }
-                className="border rounded px-3 py-2 flex-1 dark:bg-gray-900 dark:text-white"
-              />
-              <Button onClick={addTransaction}>إضافة</Button>
-            </div>
-          </div>
-
-          {/* ✅ جدول أرباح الفنيين */}
-          {/* <div className="overflow-x-auto shadow-md rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 shadow p-4 rounded-lg">
-            <h4 className="mb-3 font-bold">جدول ربح الفنيين</h4>
-            <table className="min-w-[600px] w-full text-sm text-gray-800 dark:text-gray-200">
-              <thead className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+      <div className="p-3 rounded-2xl bg-white dark:bg-gray-800 shadow-sm lg:col-span-2">
+        <h2 className="font-semibold mb-3">كل المعاملات داخل الفترة</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-right">
+                <Th>النوع</Th>
+                <Th>المبلغ</Th>
+                <Th>التاريخ</Th>
+                <Th>الوصف</Th>
+                <Th>إجراءات</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
                 <tr>
-                  <th className="p-3 border">الفني</th>
-                  <th className="p-3 border">عدد الصيانات</th>
-                  <th className="p-3 border">ربحه</th>
+                  <td colSpan={5} className="p-3">
+                    …
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {summary.technicians.map((tech) => (
-                  <tr
-                    key={tech.name}
-                    className="text-center bg-white dark:bg-gray-800 border-b"
-                  >
-                    <td className="p-2 border">{tech.name}</td>
-                    <td className="p-2 border">{tech.count}</td>
-                    <td className="p-2 border">{tech.profit} ج</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div> */}
-
-          {/* ✅ جدول تفاصيل الصيانات */}
-          {/* <div className="overflow-x-auto shadow-md rounded-lg border border-gray-300 dark:border-gray-700 mt-6">
-            <table className="min-w-[800px] w-full text-sm text-gray-800 dark:text-gray-200">
-              <thead className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-                <tr>
-                  <th className="p-3 border">العميل</th>
-                  <th className="p-3 border">الجهاز</th>
-                  <th className="p-3 border">السعر</th>
-                  <th className="p-3 border">تكلفة قطع الغيار</th>
-                  <th className="p-3 border">ربح الصيانة</th>
-                  <th className="p-3 border">الفني</th>
-                </tr>
-              </thead>
-              <tbody>
-                {summary.repairs.map((r, idx) => (
-                  <tr
-                    key={idx}
-                    className="text-center bg-white dark:bg-gray-800 border-b"
-                  >
-                    <td className="p-2 border">{r.customerName}</td>
-                    <td className="p-2 border">{r.deviceType}</td>
-                    <td className="p-2 border">{r.price} ج</td>
-                    <td className="p-2 border">{r.partsCost} ج</td>
-                    <td className="p-2 border">{r.repairProfit} ج</td>
-                    <td className="p-2 border">{r.technician}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div> */}
-
-          {/* ✅ جدول المعاملات اليدوية */}
-          <div className="overflow-x-auto shadow-md rounded-lg border border-gray-300 dark:border-gray-700 mt-6">
-            <table className="min-w-[500px] w-full text-sm text-gray-800 dark:text-gray-200">
-              <thead className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-                <tr>
-                  <th className="p-3 border">النوع</th>
-                  <th className="p-3 border">المبلغ</th>
-                  <th className="p-3 border">الوصف</th>
-                  <th className="p-3 border">التاريخ</th>
-                  <th className="p-3 border">الاجراءات</th>
-                </tr>
-              </thead>
-              <tbody>
-                {summary.transactions.map((t, idx) => (
+              ) : list.length ? (
+                list.map((t) => (
                   <tr
                     key={t._id}
-                    className={`text-center transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                      idx % 2 === 0
-                        ? "bg-white dark:bg-gray-800"
-                        : "bg-gray-50 dark:bg-gray-900"
-                    }`}
+                    className="odd:bg-gray-50 dark:odd:bg-gray-700/40"
                   >
-                    <td className="p-2 border border-gray-200 dark:border-gray-700">
-                      {t.type}
-                    </td>
-                    <td className="p-2 border border-gray-200 dark:border-gray-700">
-                      {t.amount} ج
-                    </td>
-                    <td className="p-2 border border-gray-200 dark:border-gray-700">
-                      {t.note || "-"}
-                    </td>
-                    <td className="p-2 border border-gray-200 dark:border-gray-700 text-xs">
-                      {new Date(t.createdAt).toLocaleDateString("ar-EG")}
-                    </td>
-                    <td className="p-2 border border-gray-200 dark:border-gray-700">
+                    <Td>{t.type === "in" ? "داخل" : "خارج"}</Td>
+                    <Td>{t.amount}</Td>
+                    <Td>{formatDate(t.date)}</Td>
+                    <Td>{t.description || "—"}</Td>
+                    <Td>
                       <button
-                        onClick={() => handleDeleteTransaction(t._id)}
-                        className="bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700"
+                        className="px-2 py-1 rounded bg-red-600 text-white"
+                        onClick={() => remove(t._id)}
                       >
                         حذف
                       </button>
-                    </td>
+                    </Td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="p-3 text-center opacity-70">
+                    لا يوجد معاملات
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Btn({ label, active, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-3 py-2 rounded-xl border ${
+        active
+          ? "bg-blue-600 text-white border-blue-600"
+          : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+function Card({ title, value, className = "" }) {
+  return (
+    <div
+      className={`p-4 rounded-2xl bg-white dark:bg-gray-800 shadow-sm ${className}`}
+    >
+      <div className="text-sm opacity-70">{title}</div>
+      <div className="text-2xl font-bold mt-1">{Math.round(value || 0)}</div>
     </div>
   );
-};
-
-export default AccountsPage;
+}
+function Th({ children }) {
+  return (
+    <th className="p-2 text-xs font-semibold text-gray-600 dark:text-gray-300 border-b">
+      {children}
+    </th>
+  );
+}
+function Td({ children }) {
+  return <td className="p-2">{children}</td>;
+}

@@ -1,46 +1,39 @@
-// src/features/invoices/InvoicesPage.jsx
 import { useEffect, useMemo, useState } from "react";
 import API from "../../lib/api";
 import formatDate from "../../utils/formatDate";
 
-function toISODate(d) {
-  return d.toISOString().slice(0, 10);
-}
-function startOfDay(d) {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
-}
-function endOfDay(d) {
-  const x = new Date(d);
-  x.setHours(23, 59, 59, 999);
-  return x;
+function ymdLocal(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 export default function InvoicesPage() {
-  const today = useMemo(() => new Date(), []);
+  const today = useMemo(() => ymdLocal(new Date()), []);
   const yesterday = useMemo(() => {
     const d = new Date();
     d.setDate(d.getDate() - 1);
-    return d;
+    return ymdLocal(d);
   }, []);
+  const [quick, setQuick] = useState("today");
+  const [startDate, setStartDate] = useState(today);
+  const [endDate, setEndDate] = useState(today);
+  const [loading, setLoading] = useState(false);
+  const [items, setItems] = useState([]);
+  const [byVendor, setByVendor] = useState([]);
+  const [totals, setTotals] = useState({ totalParts: 0, count: 0 });
+  const [err, setErr] = useState("");
 
-  const [quick, setQuick] = useState("today"); // today | yesterday | all | custom
-  const [startDate, setStartDate] = useState(toISODate(today));
-  const [endDate, setEndDate] = useState(toISODate(today));
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  function applyQuick(qk) {
-    setQuick(qk);
-    if (qk === "today") {
-      setStartDate(toISODate(startOfDay(today)));
-      setEndDate(toISODate(endOfDay(today)));
-    } else if (qk === "yesterday") {
-      setStartDate(toISODate(startOfDay(yesterday)));
-      setEndDate(toISODate(endOfDay(yesterday)));
-    } else if (qk === "all") {
-      // نسيب التاريخ فاضي — ونبعت all=true
+  function applyQuick(k) {
+    setQuick(k);
+    if (k === "today") {
+      setStartDate(today);
+      setEndDate(today);
+    } else if (k === "yesterday") {
+      setStartDate(yesterday);
+      setEndDate(yesterday);
+    } else if (k === "all") {
       setStartDate("");
       setEndDate("");
     }
@@ -48,57 +41,55 @@ export default function InvoicesPage() {
 
   async function load() {
     setLoading(true);
+    setErr("");
     try {
       const params = {};
-      if (quick === "all") {
-        params.all = true;
-      } else {
-        if (startDate) params.startDate = `${startDate}T00:00:00`;
-        if (endDate) params.endDate = `${endDate}T23:59:59.999`;
+      if (quick !== "all") {
+        if (startDate) params.startDate = startDate;
+        if (endDate) params.endDate = endDate;
       }
-      const r = await API.get("/invoices", { params }).then((r) => r.data);
-      setData(r);
+      const { data } = await API.get("/invoices/parts", { params });
+      setItems(data.items || []);
+      setByVendor(data.byVendor || []);
+      setTotals(data.totals || { totalParts: 0, count: 0 });
+    } catch (e) {
+      setErr(e?.response?.data?.message || "تعذر تحميل البيانات");
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    load(); /* افتراضي: اليوم */
+    load();
   }, []);
+  useEffect(() => {
+    load();
+  }, [quick, startDate, endDate]);
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold">الفواتير (حسب التسليم)</h1>
+      <header className="flex items-center justify-between">
+        <h1 className="text-xl font-bold">الفواتير (قطع الغيار)</h1>
+      </header>
 
-      {/* فلاتر سريعة + مدى */}
-      <div className="p-3 rounded-xl bg-white dark:bg-gray-800 space-y-3">
-        <div className="flex items-center gap-2">
-          <button
+      <section className="p-3 rounded-2xl bg-white dark:bg-gray-800 shadow-sm space-y-2">
+        <div className="flex flex-wrap gap-2">
+          <Btn
+            label="اليوم"
+            active={quick === "today"}
             onClick={() => applyQuick("today")}
-            className={`px-3 py-2 rounded-xl ${
-              quick === "today" ? "bg-gray-200 dark:bg-gray-700" : ""
-            }`}
-          >
-            اليوم
-          </button>
-          <button
+          />
+          <Btn
+            label="أمس"
+            active={quick === "yesterday"}
             onClick={() => applyQuick("yesterday")}
-            className={`px-3 py-2 rounded-xl ${
-              quick === "yesterday" ? "bg-gray-200 dark:bg-gray-700" : ""
-            }`}
-          >
-            أمس
-          </button>
-          <button
+          />
+          <Btn
+            label="كل الأوقات"
+            active={quick === "all"}
             onClick={() => applyQuick("all")}
-            className={`px-3 py-2 rounded-xl ${
-              quick === "all" ? "bg-gray-200 dark:bg-gray-700" : ""
-            }`}
-          >
-            جميع الأوقات
-          </button>
-          <span className="opacity-70 mx-2">أو اختر مدى:</span>
+          />
+          <span className="opacity-60 self-center hidden sm:inline">أو</span>
           <input
             type="date"
             value={startDate}
@@ -124,156 +115,144 @@ export default function InvoicesPage() {
             تطبيق
           </button>
         </div>
-      </div>
+      </section>
 
-      {/* ملخص مبسّط */}
-      {loading || !data ? (
-        <div className="p-3 rounded-xl bg-white dark:bg-gray-800">
-          جارِ التحميل...
-        </div>
-      ) : (
-        <>
-          <section className="p-3 rounded-xl bg-white dark:bg-gray-800">
-            <h2 className="font-semibold mb-2">الملخص</h2>
-            <div className="grid md:grid-cols-3 gap-3">
-              <Card
-                title="إجمالي سعر قطع الغيار"
-                value={data.totals.partsCostTotal}
-              />
-              <div className="md:col-span-2 p-3 rounded-xl bg-gray-100 dark:bg-gray-700">
-                <div className="text-sm opacity-80 mb-2">إجمالي لكل مورد</div>
-                {data.bySupplier.length === 0 ? (
-                  <div className="opacity-70">لا توجد قطع</div>
-                ) : (
-                  <div className="grid md:grid-cols-3 gap-2">
-                    {data.bySupplier.map((g) => (
-                      <div
-                        key={g.supplier}
-                        className="p-2 rounded-lg bg-white dark:bg-gray-800 flex items-center justify-between"
-                      >
-                        <span>{g.supplier}</span>
-                        <b>{g.totalCost}</b>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </section>
-
-          {/* جدول الفواتير */}
-          <section className="p-3 rounded-xl bg-white dark:bg-gray-800 overflow-x-auto">
-            <h2 className="font-semibold mb-2">
-              فواتير {quick === "all" ? "كل الأوقات" : "الفترة"}
-            </h2>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-right">
-                  <th className="p-2">#</th>
-                  <th className="p-2">العميل</th>
-                  <th className="p-2">الجهاز</th>
-                  <th className="p-2">الفني</th>
-                  <th className="p-2">تاريخ التسليم</th>
-                  <th className="p-2">القطع (اسم/بواسطة/المورد/التكلفة)</th>
-                  <th className="p-2">سعر القطع</th>
-                  {/* <th className="p-2">السعر النهائي</th>
-                  <th className="p-2">الربح</th> */}
-                </tr>
-              </thead>
-              <tbody>
-                {data.repairs.map((r) => (
-                  <tr
-                    key={r._id}
-                    className="odd:bg-gray-50 dark:odd:bg-gray-700/40 align-top"
-                  >
-                    <td className="p-2">{r.repairId}</td>
-                    <td className="p-2">{r.customerName}</td>
-                    <td className="p-2">{r.deviceType}</td>
-                    <td className="p-2">{r.technician?.name || "—"}</td>
-                    <td className="p-2">{formatDate(r.deliveryDate)}</td>
-                    <td className="p-2">
-                      {r.parts.length === 0 ? (
-                        "—"
-                      ) : (
-                        <ul className="space-y-1 list-disc pr-5">
-                          {r.parts.map((p, i) => (
-                            <li key={i}>
-                              {p.name} — {p.source || "—"} — {p.supplier || "—"}{" "}
-                              — {p.cost}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </td>
-                    <td className="p-2">{r.partsCost}</td>
-                    {/* <td className="p-2">{r.finalPrice}</td>
-                    <td className="p-2">{r.profit}</td> */}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </section>
-
-          {/* حسب المورد — التفاصيل */}
-          <section className="p-3 rounded-xl bg-white dark:bg-gray-800">
-            <h2 className="font-semibold mb-2">تفصيل حسب المورد</h2>
-            {data.bySupplier.length === 0 ? (
-              <div>لا توجد قطع</div>
-            ) : (
-              <div className="space-y-4">
-                {data.bySupplier.map((group) => (
-                  <div
-                    key={group.supplier}
-                    className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40"
-                  >
-                    <div className="font-semibold mb-2">
-                      المورد: {group.supplier} — الإجمالي: {group.totalCost}
-                    </div>
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="text-right">
-                          <th className="p-2">#الصيانة</th>
-                          <th className="p-2">اسم القطعة</th>
-                          <th className="p-2">بواسطة</th>
-                          <th className="p-2">التكلفة</th>
-                          <th className="p-2">تاريخ الشراء</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {group.items.map((it, i) => (
-                          <tr
-                            key={i}
-                            className="odd:bg-white dark:odd:bg-gray-800/40"
-                          >
-                            <td className="p-2">{it.repairId}</td>
-                            <td className="p-2">{it.name}</td>
-                            <td className="p-2">{it.source || "—"}</td>
-                            <td className="p-2">{it.cost}</td>
-                            <td className="p-2">
-                              {it.purchaseDate
-                                ? formatDate(it.purchaseDate)
-                                : "—"}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-        </>
+      {err && (
+        <div className="p-3 rounded-xl bg-red-50 text-red-800">{err}</div>
       )}
+
+      {/* ملخص الموردين */}
+      <section className="p-3 rounded-2xl bg-white dark:bg-gray-800 shadow-sm">
+        <h2 className="font-semibold mb-3">ملخص لكل مورد</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-right">
+                <Th>المورد</Th>
+                <Th>المصدر</Th>
+                <Th>عدد القطع</Th>
+                <Th>إجمالي السعر</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {byVendor.map((v, i) => (
+                <tr key={i} className="odd:bg-gray-50 dark:odd:bg-gray-700/40">
+                  <Td>{v.vendor || "—"}</Td>
+                  <Td>{v.source || "—"}</Td>
+                  <Td>{v.count || 0}</Td>
+                  <Td>{v.total || 0}</Td>
+                </tr>
+              ))}
+              {!byVendor.length && (
+                <tr>
+                  <td colSpan={4} className="p-3 text-center opacity-70">
+                    لا توجد بيانات
+                  </td>
+                </tr>
+              )}
+            </tbody>
+            <tfoot>
+              <tr className="font-bold border-t">
+                <Td>الإجمالي</Td>
+                <Td>—</Td>
+                <Td>{totals.count}</Td>
+                <Td>{totals.totalParts}</Td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </section>
+
+      {/* كل القطع داخل الفترة */}
+      <section className="p-3 rounded-2xl bg-white dark:bg-gray-800 shadow-sm">
+        <h2 className="font-semibold mb-3">كل قطع الغيار داخل الفترة</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-right">
+                <Th># الصيانة</Th>
+                <Th>الجهاز</Th>
+                <Th>العميل</Th>
+                <Th>الفني</Th>
+                <Th>القطعة</Th>
+                <Th>المورد</Th>
+                <Th>المصدر</Th>
+                <Th>السعر</Th>
+                <Th>تاريخ الشراء</Th>
+                <Th>حالة الصيانة</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={10} className="p-3">
+                    جارِ التحميل…
+                  </td>
+                </tr>
+              ) : items.length ? (
+                items.map((it, i) => (
+                  <tr
+                    key={i}
+                    className="odd:bg-gray-50 dark:odd:bg-gray-700/40"
+                  >
+                    <Td>{it.repairId}</Td>
+                    <Td>{it.deviceType || "—"}</Td>
+                    <Td>{it.customerName || "—"}</Td>
+                    <Td>{it?.tech?.name || "—"}</Td>
+                    <Td>{it.part?.name || "—"}</Td>
+                    <Td>{it.part?.vendor || "—"}</Td>
+                    <Td>{it.part?.source || "—"}</Td>
+                    <Td>{it.part?.price ?? "—"}</Td>
+                    <Td>{it.part?.date ? formatDate(it.part.date) : "—"}</Td>
+                    <Td>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs ${
+                          it.delivered
+                            ? "bg-emerald-100 text-emerald-800"
+                            : "bg-amber-100 text-amber-800"
+                        }`}
+                      >
+                        {it.delivered ? "تم التسليم/مكتملة" : "غير مُسلّمة بعد"}
+                      </span>
+                    </Td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={10} className="p-3 text-center opacity-70">
+                    لا توجد قطع غيار داخل هذه الفترة
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
   );
 }
 
-function Card({ title, value }) {
+function Btn({ label, active, onClick }) {
   return (
-    <div className="p-3 rounded-xl bg-gray-100 dark:bg-gray-700 text-center">
-      <div className="text-xs opacity-70">{title}</div>
-      <div className="text-xl font-bold">{value}</div>
-    </div>
+    <button
+      onClick={onClick}
+      className={`px-3 py-2 rounded-xl border ${
+        active
+          ? "bg-blue-600 text-white border-blue-600"
+          : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700"
+      }`}
+    >
+      {label}
+    </button>
   );
+}
+function Th({ children }) {
+  return (
+    <th className="p-2 text-xs font-semibold text-gray-600 dark:text-gray-300 border-b">
+      {children}
+    </th>
+  );
+}
+function Td({ children }) {
+  return <td className="p-2">{children}</td>;
 }

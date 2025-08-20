@@ -41,7 +41,11 @@ function Toast({ n, onClose, onOpen }) {
 export default function NotificationsLive() {
   const nav = useNavigate();
   const { user } = useAuthStore();
-
+  async function markRead(id) {
+    try {
+      await API.put(`/notifications/${id}/read`);
+    } catch {}
+  }
   const token = useMemo(() => {
     // حاول تجيب التوكن من الستور أو localStorage
     const tStore = user?.token || user?.accessToken || user?.jwt;
@@ -178,11 +182,15 @@ export default function NotificationsLive() {
           <Toast
             timeout={33333333333}
             n={t.data}
-            onOpen={() => {
+            onOpen={async () => {
+              await markRead(t.data._id);
               setToasts((T) => T.filter((x) => x.id !== t.id));
               openTarget(t.data);
             }}
-            onClose={() => setToasts((T) => T.filter((x) => x.id !== t.id))}
+            onClose={async () => {
+              await markRead(t.data._id);
+              setToasts((T) => T.filter((x) => x.id !== t.id));
+            }}
           />
         </div>
       ))}

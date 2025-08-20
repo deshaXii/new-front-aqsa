@@ -23,6 +23,8 @@ import SettingsPage from "./features/settings/SettingsPage";
 import ChatPage from "./features/chat/ChatPage";
 import DirectChatPage from "./features/chat/DirectChatPage";
 
+import RequirePermRoute from "./features/auth/RequirePermRoute";
+
 export default function App() {
   return (
     <Routes>
@@ -38,17 +40,22 @@ export default function App() {
           <Route path="/repairs/new" element={<NewRepairPage />} />
           <Route path="/repairs/:id" element={<RepairDetailsPage />} />
           <Route path="/repairs/:id/edit" element={<EditRepairPage />} />
-
           <Route path="/technicians" element={<TechniciansPage />} />
           <Route
             path="/technicians/:id/profile"
             element={<TechnicianProfilePage />}
           />
-          <Route path="/invoices" element={<InvoicesPage />} />
-          <Route path="/accounts" element={<AccountsPage />} />
-          <Route path="/backup" element={<BackupPage />} />
+          <Route element={<RequirePermRoute adminOnly />}>
+            <Route path="/invoices" element={<InvoicesPage />} />
+            <Route path="/backup" element={<BackupPage />} />
+          </Route>
+          <Route element={<RequirePermRoute perm="accounts" />}>
+            <Route path="/accounts" element={<AccountsPage />} />
+          </Route>
           <Route path="/notifications" element={<NotificationsPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
+          <Route element={<RequirePermRoute perm="settings" />}>
+            <Route path="/settings" element={<SettingsPage />} />
+          </Route>{" "}
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/chat/dm/:userId" element={<DirectChatPage />} />
         </Route>

@@ -41,6 +41,14 @@ export default function RepairsPage() {
 
   const isAdmin = user?.role === "admin" || user?.permissions?.adminOverride;
   const canEditAll = isAdmin || user?.permissions?.editRepair;
+  const canAddRepair =
+    isAdmin ||
+    user?.permissions?.adminOverride ||
+    user?.permissions?.addRepair ||
+    user?.permissions?.receiveDevice;
+
+  // لعرض/إخفاء الفلاتر
+  const canUseRepairFilters = isAdmin || user?.permissions?.editRepair;
 
   const todayStr = useMemo(() => ymdLocal(new Date()), []);
   const yesterdayStr = useMemo(() => {
@@ -245,12 +253,14 @@ export default function RepairsPage() {
       <div className="opacity-70 mb-3 text-sm">
         جرّب توسيع المدى الزمني أو إزالة بعض الفلاتر.
       </div>
-      <Link
-        to="/repairs/new"
-        className="inline-block px-4 py-2 rounded-xl bg-blue-600 text-white"
-      >
-        + إضافة صيانة
-      </Link>
+      {canAddRepair && (
+        <Link
+          to="/repairs/new"
+          className="inline-block px-4 py-2 rounded-xl bg-blue-600 text-white"
+        >
+          + إضافة صيانة
+        </Link>
+      )}
     </div>
   );
 
@@ -266,116 +276,119 @@ export default function RepairsPage() {
           >
             تحديث
           </button>
-          <Link
-            to="/repairs/new"
-            className="px-3 py-2 rounded-xl bg-blue-600 text-white hover:opacity-90"
-          >
-            + إضافة صيانة
-          </Link>
+          {canAddRepair && (
+            <Link
+              to="/repairs/new"
+              className="px-3 py-2 rounded-xl bg-blue-600 text-white hover:opacity-90"
+            >
+              + إضافة صيانة
+            </Link>
+          )}
         </div>
       </header>
 
       {/* الفلاتر */}
-      <section className="p-3 rounded-2xl bg-white dark:bg-gray-800 shadow-sm space-y-3">
-        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
-          <QuickBtn
-            label="اليوم"
-            icon="📅"
-            active={quick === "today"}
-            onClick={() => applyQuick("today")}
-          />
-          <QuickBtn
-            label="أمس"
-            icon="🕓"
-            active={quick === "yesterday"}
-            onClick={() => applyQuick("yesterday")}
-          />
-          <QuickBtn
-            label="جميع الأوقات"
-            icon="∞"
-            active={quick === "all"}
-            onClick={() => applyQuick("all")}
-          />
-          <div className="hidden sm:block opacity-60 self-center">أو</div>
-          <div className="col-span-2 sm:flex sm:items-center sm:gap-2">
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => {
-                setStartDate(e.target.value);
-                setQuick("custom");
-              }}
-              className="px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-700 w-full sm:w-auto"
-              aria-label="بداية المدى الزمني"
+      {canUseRepairFilters && (
+        <section className="p-3 rounded-2xl bg-white dark:bg-gray-800 shadow-sm space-y-3">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+            <QuickBtn
+              label="اليوم"
+              icon="📅"
+              active={quick === "today"}
+              onClick={() => applyQuick("today")}
             />
-            <span className="mx-1 opacity-60 hidden sm:inline">—</span>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => {
-                setEndDate(e.target.value);
-                setQuick("custom");
-              }}
-              className="px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-700 w-full sm:w-auto"
-              aria-label="نهاية المدى الزمني"
+            <QuickBtn
+              label="أمس"
+              icon="🕓"
+              active={quick === "yesterday"}
+              onClick={() => applyQuick("yesterday")}
             />
-            <button
-              onClick={load}
-              className="mt-2 sm:mt-0 sm:ml-2 px-4 py-2 rounded-xl bg-blue-600 text-white w-full sm:w-auto"
-            >
-              تطبيق
-            </button>
+            <QuickBtn
+              label="جميع الأوقات"
+              icon="∞"
+              active={quick === "all"}
+              onClick={() => applyQuick("all")}
+            />
+            <div className="hidden sm:block opacity-60 self-center">أو</div>
+            <div className="col-span-2 sm:flex sm:items-center sm:gap-2">
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  setQuick("custom");
+                }}
+                className="px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-700 w-full sm:w-auto"
+                aria-label="بداية المدى الزمني"
+              />
+              <span className="mx-1 opacity-60 hidden sm:inline">—</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => {
+                  setEndDate(e.target.value);
+                  setQuick("custom");
+                }}
+                className="px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-700 w-full sm:w-auto"
+                aria-label="نهاية المدى الزمني"
+              />
+              <button
+                onClick={load}
+                className="mt-2 sm:mt-0 sm:ml-2 px-4 py-2 rounded-xl bg-blue-600 text-white w-full sm:w-auto"
+              >
+                تطبيق
+              </button>
+            </div>
           </div>
-        </div>
 
-        <div className="grid md:grid-cols-4 gap-2">
-          <div className="md:col-span-2">
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") load();
-              }}
-              placeholder="بحث (اسم/هاتف/جهاز/عطل)"
-              className="px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-700 w-full"
-              aria-label="بحث"
-            />
-          </div>
-          <div>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-700 w-full"
-              aria-label="تصفية بالحالة"
-            >
-              <option value="">كل الحالات</option>
-              {statusOptions.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </div>
-          {canViewAll && (
+          <div className="grid md:grid-cols-4 gap-2">
+            <div className="md:col-span-2">
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") load();
+                }}
+                placeholder="بحث (اسم/هاتف/جهاز/عطل)"
+                className="px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-700 w-full"
+                aria-label="بحث"
+              />
+            </div>
             <div>
               <select
-                value={technician}
-                onChange={(e) => setTechnician(e.target.value)}
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
                 className="px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-700 w-full"
-                aria-label="تصفية بالفني"
+                aria-label="تصفية بالحالة"
               >
-                <option value="">كل الفنيين</option>
-                {techs.map((t) => (
-                  <option key={t._id} value={t._id}>
-                    {t.name}
+                <option value="">كل الحالات</option>
+                {statusOptions.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
                   </option>
                 ))}
               </select>
             </div>
-          )}
-        </div>
-      </section>
-
+            {canViewAll && (
+              <div>
+                <select
+                  value={technician}
+                  onChange={(e) => setTechnician(e.target.value)}
+                  className="px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-700 w-full"
+                  aria-label="تصفية بالفني"
+                >
+                  <option value="">كل الفنيين</option>
+                  {techs.map((t) => (
+                    <option key={t._id} value={t._id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
       {error && (
         <div className="p-3 rounded-xl bg-red-50 text-red-800">{error}</div>
       )}
