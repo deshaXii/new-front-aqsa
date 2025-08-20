@@ -30,7 +30,7 @@ const PartsInputGroup = ({ value = [], onChange }) => {
           />
           <input
             type="text"
-            placeholder="المصدر"
+            placeholder="بواسطة"
             value={part.source}
             onChange={(e) => handleChange(i, "source", e.target.value)}
             className="border p-1 rounded w-1/3"

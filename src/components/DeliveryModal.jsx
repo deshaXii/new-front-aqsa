@@ -141,7 +141,7 @@ export default function DeliveryModal({
                 <thead>
                   <tr className="text-right">
                     <th className="p-2">الاسم</th>
-                    <th className="p-2">المصدر</th>
+                    <th className="p-2">بواسطة</th>
                     <th className="p-2">المورد</th>
                     <th className="p-2">تاريخ الشراء</th>
                     <th className="p-2">التكلفة</th>

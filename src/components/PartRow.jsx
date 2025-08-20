@@ -14,7 +14,7 @@ const PartRow = ({ part, onChange, onDelete }) => {
         type="text"
         value={part.source}
         onChange={(e) => onChange("source", e.target.value)}
-        placeholder="المصدر"
+        placeholder="بواسطة"
         className="border p-1 rounded w-1/3"
       />
       <input

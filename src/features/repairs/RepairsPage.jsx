@@ -1,4 +1,3 @@
-// src/features/repairs/RepairsPage.jsx
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import API from "../../lib/api";
@@ -8,19 +7,28 @@ import statusOptions from "../../utils/statusOptions";
 import useAuthStore from "../auth/authStore";
 import DeliveryModal from "../../components/DeliveryModal";
 
-// Helpers
-function startOfDay(d) {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
+/* ========= Helpers ========= */
+function inRange(dateISO, startStr, endStr) {
+  if (!dateISO || !startStr || !endStr) return false;
+  const d = new Date(dateISO);
+  const start = new Date(`${startStr}T00:00:00`);
+  const end = new Date(`${endStr}T23:59:59.999`);
+  return d >= start && d <= end;
 }
-function endOfDay(d) {
-  const x = new Date(d);
-  x.setHours(23, 59, 59, 999);
-  return x;
+
+function isOldRepair(r, quick, startStr, endStr) {
+  if (quick === "all" || !startStr || !endStr) return false;
+  const deliveredIn = inRange(r.deliveryDate, startStr, endStr);
+  const createdIn = inRange(r.createdAt, startStr, endStr);
+  return deliveredIn && !createdIn;
 }
-function toISODate(d) {
-  return d.toISOString().slice(0, 10);
+
+// تاريخ محلي YYYY-MM-DD بدون UTC
+function ymdLocal(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 export default function RepairsPage() {
@@ -34,18 +42,19 @@ export default function RepairsPage() {
   const isAdmin = user?.role === "admin" || user?.permissions?.adminOverride;
   const canEditAll = isAdmin || user?.permissions?.editRepair;
 
-  const today = useMemo(() => new Date(), []);
-  const yesterday = useMemo(() => {
+  const todayStr = useMemo(() => ymdLocal(new Date()), []);
+  const yesterdayStr = useMemo(() => {
     const d = new Date();
     d.setDate(d.getDate() - 1);
-    return d;
+    return ymdLocal(d);
   }, []);
+
   const [quick, setQuick] = useState("today"); // today | yesterday | all | custom
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("");
   const [technician, setTechnician] = useState("");
-  const [startDate, setStartDate] = useState(toISODate(today));
-  const [endDate, setEndDate] = useState(toISODate(today));
+  const [startDate, setStartDate] = useState(todayStr);
+  const [endDate, setEndDate] = useState(todayStr);
   const [techs, setTechs] = useState([]);
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -55,9 +64,10 @@ export default function RepairsPage() {
   const [deliverTarget, setDeliverTarget] = useState(null);
   const [deliverRequirePassword, setDeliverRequirePassword] = useState(false);
 
-  // UX: عداد بسيط للتحديث + أخطاء
+  // أخطاء عامة
   const [error, setError] = useState("");
 
+  // تحميل الفنيين مرة واحدة
   useEffect(() => {
     (async () => {
       try {
@@ -67,22 +77,22 @@ export default function RepairsPage() {
     })();
   }, []);
 
+  // أزرار المدى السريع
   function applyQuick(qk) {
     setQuick(qk);
     if (qk === "today") {
-      setStartDate(toISODate(startOfDay(today)));
-      setEndDate(toISODate(endOfDay(today)));
+      setStartDate(todayStr);
+      setEndDate(todayStr);
     } else if (qk === "yesterday") {
-      setStartDate(toISODate(startOfDay(yesterday)));
-      setEndDate(toISODate(endOfDay(yesterday)));
+      setStartDate(yesterdayStr);
+      setEndDate(yesterdayStr);
     } else if (qk === "all") {
       setStartDate("");
       setEndDate("");
     }
-    // طبّق فورًا لتحسين التجربة
-    setTimeout(load, 0);
   }
 
+  // تحميل القائمة
   async function load() {
     setLoading(true);
     setError("");
@@ -91,10 +101,13 @@ export default function RepairsPage() {
       if (q) params.q = q;
       if (status) params.status = status;
       if (canViewAll && technician) params.technician = technician;
+
+      // مهم: أرسل التاريخ فقط بدون أوقات، عشان السيرفر يحسب بداية/نهاية اليوم محليًا
       if (quick !== "all") {
-        if (startDate) params.startDate = `${startDate}T00:00:00`;
-        if (endDate) params.endDate = `${endDate}T23:59:59.999`;
+        if (startDate) params.startDate = startDate;
+        if (endDate) params.endDate = endDate;
       }
+
       const data = await listRepairs(params);
       setList(data);
     } catch (e) {
@@ -103,9 +116,18 @@ export default function RepairsPage() {
       setLoading(false);
     }
   }
+
+  // حمّل عند أول مرة
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // حمّل تلقائيًا عند تغير الفلاتر (يعالج مشكلة الضغط مرتين)
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quick, startDate, endDate, status, technician, q, canViewAll]);
 
   function openDeliverModal(r) {
     const isAssigned =
@@ -115,6 +137,7 @@ export default function RepairsPage() {
     setDeliverTarget(r);
     setDeliverOpen(true);
   }
+
   async function submitDeliver(payload) {
     try {
       await updateRepairStatus(deliverTarget._id, {
@@ -164,8 +187,8 @@ export default function RepairsPage() {
     }
   }
 
-  // ====== UI Components ======
-  const QuickBtn = ({ value, label, icon, active, onClick }) => (
+  /* ====== UI Components ====== */
+  const QuickBtn = ({ label, icon, active, onClick }) => (
     <button
       onClick={onClick}
       className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition
@@ -252,33 +275,28 @@ export default function RepairsPage() {
         </div>
       </header>
 
-      {/* الفلاتر — مصممة للموبايل والديسكتوب */}
+      {/* الفلاتر */}
       <section className="p-3 rounded-2xl bg-white dark:bg-gray-800 shadow-sm space-y-3">
-        {/* سطر 1: أزرار الزمن السريع */}
         <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
           <QuickBtn
-            value="today"
             label="اليوم"
             icon="📅"
             active={quick === "today"}
             onClick={() => applyQuick("today")}
           />
           <QuickBtn
-            value="yesterday"
             label="أمس"
             icon="🕓"
             active={quick === "yesterday"}
             onClick={() => applyQuick("yesterday")}
           />
           <QuickBtn
-            value="all"
             label="جميع الأوقات"
             icon="∞"
             active={quick === "all"}
             onClick={() => applyQuick("all")}
           />
           <div className="hidden sm:block opacity-60 self-center">أو</div>
-          {/* مدى زمني */}
           <div className="col-span-2 sm:flex sm:items-center sm:gap-2">
             <input
               type="date"
@@ -310,7 +328,6 @@ export default function RepairsPage() {
           </div>
         </div>
 
-        {/* سطر 2: بحث + حالة + فني (إن وُجد) */}
         <div className="grid md:grid-cols-4 gap-2">
           <div className="md:col-span-2">
             <input
@@ -359,12 +376,11 @@ export default function RepairsPage() {
         </div>
       </section>
 
-      {/* خطأ عام إن وجد */}
       {error && (
         <div className="p-3 rounded-xl bg-red-50 text-red-800">{error}</div>
       )}
 
-      {/* الديسكتوب: جدول كامل */}
+      {/* الديسكتوب */}
       <section className="hidden md:block p-3 rounded-2xl bg-white dark:bg-gray-800 shadow-sm overflow-x-auto">
         <div className="flex items-center justify-between mb-2">
           <div className="text-sm opacity-70">
@@ -403,67 +419,84 @@ export default function RepairsPage() {
                 </td>
               </tr>
             ) : (
-              list.map((r) => (
-                <tr
-                  key={r._id}
-                  className="odd:bg-gray-50 dark:odd:bg-gray-700/40 hover:bg-gray-100/60 dark:hover:bg-gray-700/60 transition"
-                >
-                  <Td>{r.repairId}</Td>
-                  <Td>{r.customerName}</Td>
-                  <Td>{r.phone || "—"}</Td>
-                  <Td className="font-medium">{r.deviceType}</Td>
-                  <Td className="max-w-[220px] truncate" title={r.issue || ""}>
-                    {r.issue || "—"}
-                  </Td>
-                  <Td>{r.color || "—"}</Td>
-                  <Td>{r?.technician?.name || "—"}</Td>
-                  <Td>{r?.createdBy?.name || r?.recipient?.name || "—"}</Td>
-                  <Td>
-                    <div className="flex items-center gap-2">
-                      <StatusPill s={r.status} />
-                      <select
-                        value={r.status}
-                        onChange={(e) => changeStatusInline(r, e.target.value)}
-                        className="px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-700"
-                        aria-label={`تغيير حالة الصيانة رقم ${r.repairId}`}
-                      >
-                        {statusOptions.map((s) => (
-                          <option key={s} value={s}>
-                            {s}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </Td>
-                  <Td>{typeof r.price === "number" ? r.price : "—"}</Td>
-                  <Td>{formatDate(r.createdAt)}</Td>
-                  <Td>{r.deliveryDate ? formatDate(r.deliveryDate) : "—"}</Td>
-                  <Td>
-                    <div className="flex items-center gap-2">
-                      <Link
-                        to={`/repairs/${r._id}`}
-                        className="px-2 py-1 rounded-lg bg-gray-200 dark:bg-gray-700"
-                      >
-                        فتح
-                      </Link>
-                      {canEditAll && (
-                        <Link
-                          to={`/repairs/${r._id}/edit`}
-                          className="px-2 py-1 rounded-lg bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200"
-                        >
-                          تعديل
-                        </Link>
+              list.map((r) => {
+                const old = isOldRepair(r, quick, startDate, endDate);
+                return (
+                  <tr
+                    key={r._id}
+                    className={`odd:bg-gray-50 rounded-[4px] dark:odd:bg-gray-700/40 hover:bg-gray-100/60 dark:hover:bg-gray-700/60 transition ${
+                      old ? "ring-1 ring-yellow-200 dark:ring-yellow-700" : ""
+                    }`}
+                  >
+                    <Td>
+                      {r.repairId}
+                      {old && (
+                        <span className="ml-1 px-2 py-0.5 rounded-full text-[11px] bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200">
+                          قديمة
+                        </span>
                       )}
-                    </div>
-                  </Td>
-                </tr>
-              ))
+                    </Td>
+                    <Td>{r.customerName}</Td>
+                    <Td>{r.phone || "—"}</Td>
+                    <Td className="font-medium">{r.deviceType}</Td>
+                    <Td
+                      className="max-w-[220px] truncate"
+                      title={r.issue || ""}
+                    >
+                      {r.issue || "—"}
+                    </Td>
+                    <Td>{r.color || "—"}</Td>
+                    <Td>{r?.technician?.name || "—"}</Td>
+                    <Td>{r?.createdBy?.name || r?.recipient?.name || "—"}</Td>
+                    <Td>
+                      <div className="flex items-center gap-2">
+                        <StatusPill s={r.status} />
+                        <select
+                          value={r.status}
+                          onChange={(e) =>
+                            changeStatusInline(r, e.target.value)
+                          }
+                          className="px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-700"
+                          aria-label={`تغيير حالة الصيانة رقم ${r.repairId}`}
+                        >
+                          {statusOptions.map((s) => (
+                            <option key={s} value={s}>
+                              {s}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </Td>
+                    <Td>{typeof r.price === "number" ? r.price : "—"}</Td>
+                    <Td>{formatDate(r.createdAt)}</Td>
+                    <Td>{r.deliveryDate ? formatDate(r.deliveryDate) : "—"}</Td>
+                    <Td>
+                      <div className="flex items-center gap-2">
+                        <Link
+                          to={`/repairs/${r._id}`}
+                          className="px-2 py-1 rounded-lg bg-gray-200 dark:bg-gray-700"
+                        >
+                          فتح
+                        </Link>
+                        {canEditAll && (
+                          <Link
+                            to={`/repairs/${r._id}/edit`}
+                            className="px-2 py-1 rounded-lg bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200"
+                          >
+                            تعديل
+                          </Link>
+                        )}
+                      </div>
+                    </Td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
       </section>
 
-      {/* الموبايل: كروت سهلة */}
+      {/* الموبايل */}
       <section className="md:hidden space-y-2">
         {loading ? (
           <div className="p-3 rounded-2xl bg-white dark:bg-gray-800 animate-pulse h-24" />
@@ -558,7 +591,7 @@ export default function RepairsPage() {
   );
 }
 
-// ====== Sub Components ======
+/* ====== Sub Components ====== */
 function Th({ children }) {
   return (
     <th className="p-2 text-xs font-semibold text-gray-600 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700">

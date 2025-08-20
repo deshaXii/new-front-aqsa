@@ -105,35 +105,35 @@ export default function NewRepairPage() {
           <input
             value={form.customerName}
             onChange={(e) => setField("customerName", e.target.value)}
-            className="inp"
+            className="inp w-full"
           />
         </Field>
         <Field label="هاتف">
           <input
             value={form.phone}
             onChange={(e) => setField("phone", e.target.value)}
-            className="inp"
+            className="inp w-full"
           />
         </Field>
         <Field label="نوع الجهاز">
           <input
             value={form.deviceType}
             onChange={(e) => setField("deviceType", e.target.value)}
-            className="inp"
+            className="inp w-full"
           />
         </Field>
         <Field label="اللون">
           <input
             value={form.color}
             onChange={(e) => setField("color", e.target.value)}
-            className="inp"
+            className="inp w-full"
           />
         </Field>
         <Field label="العطل">
           <input
             value={form.issue}
             onChange={(e) => setField("issue", e.target.value)}
-            className="inp"
+            className="inp w-full"
           />
         </Field>
         <Field label="السعر المبدئي">
@@ -141,14 +141,14 @@ export default function NewRepairPage() {
             type="number"
             value={form.price}
             onChange={(e) => setField("price", e.target.value)}
-            className="inp"
+            className="inp w-full"
           />
         </Field>
         <Field label="الفني المسؤول">
           <select
             value={form.technician}
             onChange={(e) => setField("technician", e.target.value)}
-            className="inp"
+            className="inp w-full"
           >
             <option value="">—</option>
             {techs.map((t) => (
@@ -162,7 +162,7 @@ export default function NewRepairPage() {
           <input
             value={form.notes}
             onChange={(e) => setField("notes", e.target.value)}
-            className="inp"
+            className="inp w-full"
           />
         </Field>
       </section>
@@ -186,7 +186,7 @@ export default function NewRepairPage() {
                 <th className="p-2">الاسم</th>
                 <th className="p-2">التكلفة</th>
                 <th className="p-2">المورد</th>
-                <th className="p-2">المصدر</th>
+                <th className="p-2">بواسطة</th>
                 <th className="p-2">تاريخ الشراء</th>
                 <th className="p-2">حذف</th>
               </tr>
@@ -198,7 +198,7 @@ export default function NewRepairPage() {
                     <input
                       value={p.name}
                       onChange={(e) => updatePart(i, "name", e.target.value)}
-                      className="inp"
+                      className="inp w-full"
                     />
                   </td>
                   <td className="p-2">
@@ -215,14 +215,14 @@ export default function NewRepairPage() {
                       onChange={(e) =>
                         updatePart(i, "supplier", e.target.value)
                       }
-                      className="inp"
+                      className="inp w-full"
                     />
                   </td>
                   <td className="p-2">
                     <input
                       value={p.source}
                       onChange={(e) => updatePart(i, "source", e.target.value)}
-                      className="inp"
+                      className="inp w-full"
                     />
                   </td>
                   <td className="p-2">
@@ -232,7 +232,7 @@ export default function NewRepairPage() {
                       onChange={(e) =>
                         updatePart(i, "purchaseDate", e.target.value)
                       }
-                      className="inp"
+                      className="inp w-full"
                     />
                   </td>
                   <td className="p-2">

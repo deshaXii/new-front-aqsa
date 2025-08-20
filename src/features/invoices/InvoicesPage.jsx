@@ -174,7 +174,7 @@ export default function InvoicesPage() {
                   <th className="p-2">الجهاز</th>
                   <th className="p-2">الفني</th>
                   <th className="p-2">تاريخ التسليم</th>
-                  <th className="p-2">القطع (اسم/المصدر/المورد/التكلفة)</th>
+                  <th className="p-2">القطع (اسم/بواسطة/المورد/التكلفة)</th>
                   <th className="p-2">سعر القطع</th>
                   {/* <th className="p-2">السعر النهائي</th>
                   <th className="p-2">الربح</th> */}
@@ -234,7 +234,7 @@ export default function InvoicesPage() {
                         <tr className="text-right">
                           <th className="p-2">#الصيانة</th>
                           <th className="p-2">اسم القطعة</th>
-                          <th className="p-2">المصدر</th>
+                          <th className="p-2">بواسطة</th>
                           <th className="p-2">التكلفة</th>
                           <th className="p-2">تاريخ الشراء</th>
                         </tr>
