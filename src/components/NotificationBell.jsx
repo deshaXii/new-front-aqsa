@@ -1,40 +1,34 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
-import useAuthStore from "../features/auth/authStore.js";
-import { useNavigate } from "react-router-dom";
+// src/components/NotificationBell.jsx
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import API from "../lib/api";
 
-const NotificationBell = () => {
-  const { token } = useAuthStore();
+export default function NotificationBell() {
   const [count, setCount] = useState(0);
-  const navigate = useNavigate();
 
-  const fetchNotifications = async () => {
-    const { data } = await axios.get(
-      "https://aqsa-serverless.vercel.app/api/notifications",
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
-    const unread = data.filter((n) => !n.read).length;
-    setCount(unread);
-  };
+  async function fetchCount() {
+    try {
+      const list = await API.get("/notifications").then((r) => r.data);
+      setCount(list.filter((n) => !n.read).length);
+    } catch (e) {
+      // ignore
+    }
+  }
 
   useEffect(() => {
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 10000); // تحديث كل 10 ثواني
-    return () => clearInterval(interval);
+    fetchCount();
+    const i = setInterval(fetchCount, 10000); // كل 10 ثواني
+    return () => clearInterval(i);
   }, []);
 
   return (
-    <button onClick={() => navigate("/notifications")} className="relative p-2">
-      🔔
+    <Link to="/notifications" className="relative inline-flex items-center">
+      <span className="material-icons">notifications</span>
       {count > 0 && (
-        <span className="absolute top-0 right-0 bg-red-500 text-white text-xs px-1 rounded-full">
+        <span className="absolute -top-1 -right-2 bg-red-500 text-white text-xs px-1.5 rounded-full">
           {count}
         </span>
       )}
-    </button>
+    </Link>
   );
-};
-
-export default NotificationBell;
+}

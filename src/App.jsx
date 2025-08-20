@@ -1,87 +1,61 @@
-import React from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+// src/App.jsx
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import MainLayout from "./layouts/MainLayout";
+import AuthLayout from "./layouts/AuthLayout";
+import LoginPage from "./features/auth/LoginPage";
+import ProtectedRoute from "./features/auth/ProtectedRoute";
+import PublicOnlyRoute from "./features/auth/PublicOnlyRoute";
 
-// Layout
-import MainLayout from "./layouts/MainLayout.jsx";
+import RepairsPage from "./features/repairs/RepairsPage";
+import NewRepairPage from "./features/repairs/NewRepairPage";
+import RepairDetailsPage from "./features/repairs/RepairDetailsPage";
+import EditRepairPage from "./features/repairs/EditRepairPage";
 
-// Auth
-import LoginPage from "./features/auth/LoginPage.jsx";
-import ProtectedRoute from "./features/auth/ProtectedRoute.jsx";
+import TechniciansPage from "./features/technicians/TechniciansPage";
+import TechnicianProfilePage from "./features/technicians/TechnicianProfilePage";
 
-// Repairs
-import RepairsPage from "./features/repairs/RepairsPage.jsx";
-import NewRepairPage from "./features/repairs/NewRepairPage.jsx";
-import EditRepairPage from "./features/repairs/EditRepairPage.jsx";
-import RepairDetailsPage from "./features/repairs/RepairDetailsPage.jsx";
+import InvoicesPage from "./features/invoices/InvoicesPage";
+import AccountsPage from "./features/accounts/AccountsPage";
+import BackupPage from "./features/backup/BackupPage";
+import NotificationsPage from "./features/notifications/NotificationsPage";
 
-// Technicians
-import TechniciansPage from "./features/technicians/TechniciansPage.jsx";
+import SettingsPage from "./features/settings/SettingsPage";
+import ChatPage from "./features/chat/ChatPage";
+import DirectChatPage from "./features/chat/DirectChatPage";
 
-// Invoices
-import InvoicesPage from "./features/invoices/InvoicesPage.jsx";
-
-// Backup
-import BackupPage from "./features/backup/BackupPage.jsx";
-
-// Notifications
-import NotificationsPage from "./features/notifications/NotificationsPage.jsx";
-import AccountsPage from "./features/accounts/AccountsPage.jsx";
-
-const App = () => {
+export default function App() {
   return (
     <Routes>
-      {/* إعادة توجيه الرئيسية لصفحة تسجيل الدخول */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
-      <Route path="/login" element={<LoginPage />} />
-
-      {/* جميع الصفحات المحمية داخل MainLayout */}
-      <Route
-        element={
-          <ProtectedRoute>
-            <MainLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route
-          element={
-            <ProtectedRoute adminOnly>
-              <BackupPage />
-            </ProtectedRoute>
-          }
-          path="/backup"
-        />
-        <Route
-          element={
-            <ProtectedRoute adminOnly>
-              <AccountsPage />
-            </ProtectedRoute>
-          }
-          path="/accounts"
-        />
-        <Route
-          element={
-            <ProtectedRoute adminOnly>
-              <InvoicesPage />
-            </ProtectedRoute>
-          }
-          path="/invoices"
-        />
-        <Route
-          element={
-            <ProtectedRoute adminOnly>
-              <TechniciansPage />
-            </ProtectedRoute>
-          }
-          path="/technicians"
-        />
-        <Route path="/repairs" element={<RepairsPage />} />
-        <Route path="/repairs/new" element={<NewRepairPage />} />
-        <Route path="/repairs/:id" element={<RepairDetailsPage />} />
-        <Route path="/repairs/:id/edit" element={<EditRepairPage />} />
-        <Route path="/notifications" element={<NotificationsPage />} />
+      <Route element={<PublicOnlyRoute />}>
+        <Route path="/login" element={<LoginPage />} />
       </Route>
+
+      {/* صفحات محمية */}
+      <Route element={<ProtectedRoute />}>
+        <Route element={<MainLayout />}>
+          <Route index element={<Navigate to="/repairs" replace />} />
+          <Route path="/repairs" element={<RepairsPage />} />
+          <Route path="/repairs/new" element={<NewRepairPage />} />
+          <Route path="/repairs/:id" element={<RepairDetailsPage />} />
+          <Route path="/repairs/:id/edit" element={<EditRepairPage />} />
+
+          <Route path="/technicians" element={<TechniciansPage />} />
+          <Route
+            path="/technicians/:id/profile"
+            element={<TechnicianProfilePage />}
+          />
+          <Route path="/invoices" element={<InvoicesPage />} />
+          <Route path="/accounts" element={<AccountsPage />} />
+          <Route path="/backup" element={<BackupPage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/chat" element={<ChatPage />} />
+          <Route path="/chat/dm/:userId" element={<DirectChatPage />} />
+        </Route>
+      </Route>
+
+      {/* أي مسار غير معروف → إلى repairs (سيتطلب auth) */}
+      <Route path="*" element={<Navigate to="/repairs" replace />} />
     </Routes>
   );
-};
-
-export default App;
+}

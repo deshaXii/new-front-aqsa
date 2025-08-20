@@ -1,24 +1,20 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import InputField from "../../components/InputField.jsx";
 import Button from "../../components/Button.jsx";
 import VoiceInput from "../../components/VoiceInput.jsx";
 import Notification from "../../components/Notification.jsx";
 import axios from "axios";
+import useAuthStore from "./authStore.js";
 
 const LoginPage = () => {
+  const { token, user } = useAuthStore();
+  if (token && user) return <Navigate to="/repairs" replace />;
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [isLogin, setIsLogin] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
-
-  // ✅ لو فيه بيانات محفوظة بالفعل نعمل Redirect
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      navigate("/repairs", { replace: true });
-    }
-  }, [navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -34,10 +30,13 @@ const LoginPage = () => {
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
       localStorage.setItem("loginTime", Date.now());
+      setIsLogin(true);
 
       // ✅ التحويل لصفحة الصيانات
       navigate("/repairs", { replace: true });
     } catch (err) {
+      console.log(err);
+      setIsLogin(false);
       setError(err.response?.data?.message || "حدث خطأ أثناء تسجيل الدخول");
     }
   };

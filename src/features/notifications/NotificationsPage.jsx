@@ -1,74 +1,108 @@
-// frontend/src/pages/NotificationsPage.jsx
+// src/features/notifications/NotificationsPage.jsx
 import { useEffect, useState } from "react";
-import {
-  fetchNotifications,
-  markAsRead,
-  clearNotifications,
-} from "../../features/notifications/api.js";
-import useAuthStore from "../../features/auth/authStore.js";
-import Button from "../../components/Button.jsx";
+import { useNavigate } from "react-router-dom";
+import API from "../../lib/api";
+import formatDate from "../../utils/formatDate";
 
-const NotificationsPage = () => {
-  const { token } = useAuthStore();
-  const [notifications, setNotifications] = useState([]);
+export default function NotificationsPage() {
+  const [list, setList] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const nav = useNavigate();
 
-  const load = async () => {
-    const data = await fetchNotifications(token);
-    setNotifications(data);
-  };
-
-  const handleRead = async (id) => {
-    await markAsRead(id, token);
-    load();
-  };
-
-  const handleClear = async () => {
-    if (!window.confirm("هل أنت متأكد من حذف كل الإشعارات؟")) return;
-    await clearNotifications(token);
-    load();
-  };
-
+  async function load() {
+    setLoading(true);
+    try {
+      const res = await API.get("/notifications").then((r) => r.data);
+      setList(res);
+    } finally {
+      setLoading(false);
+    }
+  }
   useEffect(() => {
     load();
   }, []);
 
-  return (
-    <div className="p-4 max-w-3xl mx-auto">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">الإشعارات</h2>
-        <Button onClick={handleClear}>🗑️ مسح الكل</Button>
-      </div>
+  async function open(n) {
+    try {
+      await API.put(`/notifications/${n._id}/read`);
+    } catch {}
+    if (n.type === "chat") {
+      const to = n?.meta?.from ? `/chat/dm/${n.meta.from}` : "/chat";
+      nav(to);
+    } else if (n.type === "repair") {
+      const id = n?.meta?.repairId;
+      if (id) nav(`/repairs/${id}`);
+    }
+  }
+  async function markAllRead() {
+    const unread = list.filter((n) => !n.read);
+    for (const n of unread) {
+      try {
+        await API.put(`/notifications/${n._id}/read`);
+      } catch {}
+    }
+    await load();
+  }
+  async function clearAll() {
+    if (!confirm("مسح كل الإشعارات؟")) return;
+    await API.delete("/notifications/clear");
+    await load();
+  }
 
-      <div className="space-y-3">
-        {notifications.map((n) => (
-          <div
-            key={n._id}
-            className={`p-3 rounded border ${
-              n.read
-                ? "bg-gray-100 dark:bg-gray-700"
-                : "bg-white dark:bg-gray-800 border-lime-600 border-l-4"
-            }`}
+  return (
+    <div className="space-y-4">
+      <header className="flex items-center justify-between">
+        <h1 className="text-xl font-bold">الإشعارات</h1>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={markAllRead}
+            className="px-3 py-2 rounded-xl bg-emerald-600 text-white"
           >
-            <p>{n.message}</p>
-            <div className="text-xs text-gray-500 flex justify-between">
-              <span>{new Date(n.createdAt).toLocaleString()}</span>
-              {!n.read && (
-                <button
-                  onClick={() => handleRead(n._id)}
-                  className="text-blue-600 dark:text-blue-300"
-                >
-                  تعليم كمقروء
-                </button>
-              )}
-            </div>
-          </div>
-        ))}
-        {notifications.length === 0 && (
-          <p className="text-center text-gray-500">لا توجد إشعارات حاليًا</p>
+            تحديد الكل كمقروء
+          </button>
+          <button
+            onClick={clearAll}
+            className="px-3 py-2 rounded-xl bg-red-600 text-white"
+          >
+            مسح الكل
+          </button>
+        </div>
+      </header>
+      <div className="p-3 rounded-xl bg-white dark:bg-gray-800">
+        {loading ? (
+          <div>جارِ التحميل...</div>
+        ) : list.length === 0 ? (
+          <div>لا توجد إشعارات.</div>
+        ) : (
+          <ul className="space-y-2">
+            {list.map((n) => (
+              <li
+                key={n._id}
+                onClick={() => open(n)}
+                className={`p-2 rounded-lg cursor-pointer ${
+                  n.read
+                    ? "bg-gray-100 dark:bg-gray-700/50 opacity-80"
+                    : "bg-blue-50 dark:bg-blue-900/20"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm">{n.message}</div>
+                    <div className="text-xs opacity-70">
+                      {formatDate(n.createdAt)}
+                    </div>
+                  </div>
+                  {!n.read && (
+                    <span className="text-xs px-2 py-1 rounded bg-blue-600 text-white">
+                      جديد
+                    </span>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     </div>
   );
-};
-
-export default NotificationsPage;
+}

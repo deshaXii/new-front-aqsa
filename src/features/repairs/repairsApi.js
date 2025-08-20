@@ -1,28 +1,35 @@
-import axios from "axios";
-import useAuthStore from "../../pages/auth/authStore";
+// src/features/repairs/repairsApi.js
+import API from "../../lib/api";
 
-const API_URL = "https://aqsa-serverless.vercel.app/api/repairs";
+// List (مع فلاتر اختيارية)
+export function listRepairs(params = {}) {
+  return API.get("/repairs", { params }).then((r) => r.data);
+}
 
-export const getRepairs = async () => {
-  const { token } = useAuthStore.getState();
-  const res = await axios.get(API_URL, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return res.data;
-};
+// Get one
+export function getRepair(id) {
+  return API.get(`/repairs/${id}`).then((r) => r.data);
+}
 
-export const createRepair = async (repairData) => {
-  const { token } = useAuthStore.getState();
-  const res = await axios.post(API_URL, repairData, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return res.data;
-};
+// Create
+export function createRepair(payload) {
+  return API.post("/repairs", payload).then((r) => r.data);
+}
 
-export const updateRepair = async (id, repairData) => {
-  const { token } = useAuthStore.getState();
-  const res = await axios.put(`${API_URL}/${id}`, repairData, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return res.data;
-};
+// Update (عام)
+export function updateRepair(id, payload) {
+  return API.put(`/repairs/${id}`, payload).then((r) => r.data);
+}
+
+// Update status (فني معيّن: يتطلب password)
+export function updateRepairStatus(
+  id,
+  { status, password, rejectedDeviceLocation }
+) {
+  const body = { status };
+  if (password) body.password = password;
+  if (status === "مرفوض" && rejectedDeviceLocation) {
+    body.rejectedDeviceLocation = rejectedDeviceLocation; // 'بالمحل' أو 'مع العميل'
+  }
+  return API.put(`/repairs/${id}`, body).then((r) => r.data);
+}

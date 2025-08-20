@@ -1,24 +1,28 @@
-import React from "react";
-import { Navigate } from "react-router-dom";
-import useAuthStore from "../../features/auth/authStore.js";
-const ProtectedRoute = ({ children, adminOnly }) => {
-  const { user } = useAuthStore();
-  const token = localStorage.getItem("token");
-  const loginTime = localStorage.getItem("loginTime");
+import { Navigate, Outlet, useLocation } from "react-router-dom";
+import useAuthStore from "./authStore";
 
-  // ✅ انتهاء صلاحية بعد ساعة
-  if (token && loginTime) {
-    const now = Date.now();
-    if (now - parseInt(loginTime) > 3600000) {
-      localStorage.clear();
-      return <Navigate to="/login" replace />;
-    }
+export default function ProtectedRoute() {
+  const location = useLocation();
+
+  // من الستور
+  const tokenInStore = useAuthStore((s) => s.token);
+  const userInStore = useAuthStore((s) => s.user);
+
+  // fallback فوري من localStorage (بدون أي setState)
+  const tokenLS = !tokenInStore ? localStorage.getItem("token") : null;
+  let userLS = null;
+  if (!userInStore) {
+    try {
+      userLS = JSON.parse(localStorage.getItem("user") || "null");
+    } catch {}
   }
 
-  if (!token) {
-    return <Navigate to="/login" replace />;
-  }
-  return children;
-};
+  const token = tokenInStore || tokenLS;
+  const user = userInStore || userLS;
 
-export default ProtectedRoute;
+  const authed = Boolean(token) && Boolean(user);
+  if (!authed) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+  return <Outlet />;
+}
