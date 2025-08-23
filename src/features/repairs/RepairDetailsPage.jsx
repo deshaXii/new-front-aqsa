@@ -6,6 +6,7 @@ import { getRepair, updateRepair, updateRepairStatus } from "./repairsApi";
 import formatDate from "../../utils/formatDate";
 import statusOptions from "../../utils/statusOptions";
 import DeliveryModal from "../../components/DeliveryModal";
+import StatusSelect from "../../components/StatusSelect";
 
 export default function SingleRepairPage() {
   const { id } = useParams();
@@ -147,18 +148,11 @@ export default function SingleRepairPage() {
         <div className="grid md:grid-cols-4 gap-3 items-end">
           <label className="space-y-1">
             <div className="text-sm opacity-80">الحالة</div>
-            <select
+            <StatusSelect
               value={repair.status || ""}
-              onChange={(e) => onStatusChange(e.target.value)}
-              className="px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-700"
+              onChange={(v) => onStatusChange(v)}
               disabled={!canEditAll && !isAssigned}
-            >
-              {statusOptions.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
+            />
             {!canEditAll && isAssigned && (
               <div className="text-xs opacity-70 mt-1">
                 عند اختيار “تم التسليم” سيُطلب كلمة السر.
@@ -188,6 +182,10 @@ export default function SingleRepairPage() {
           </label>
 
           <Info label="تاريخ الإنشاء" value={formatDate(repair.createdAt)} />
+          <Info
+            label="تاريخ الإستلام"
+            value={formatDate(repair.deliveryDate)}
+          />
           <Info label="الفني" value={repair?.technician?.name || "—"} />
         </div>
       </section>

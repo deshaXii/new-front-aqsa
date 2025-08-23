@@ -6,6 +6,7 @@ import formatDate from "../../utils/formatDate";
 import statusOptions from "../../utils/statusOptions";
 import useAuthStore from "../auth/authStore";
 import DeliveryModal from "../../components/DeliveryModal";
+import StatusSelect from "../../components/StatusSelect";
 
 /* ========= Helpers ========= */
 function inRange(dateISO, startStr, endStr) {
@@ -511,20 +512,10 @@ export default function RepairsPage() {
                     <Td>
                       <div className="flex items-center gap-2">
                         {/* <StatusPill s={r.status} /> */}
-                        <select
+                        <StatusSelect
                           value={r.status}
-                          onChange={(e) =>
-                            changeStatusInline(r, e.target.value)
-                          }
-                          className="px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-700"
-                          aria-label={`تغيير حالة الصيانة رقم ${r.repairId}`}
-                        >
-                          {statusOptions.map((s) => (
-                            <option key={s} value={s}>
-                              {s}
-                            </option>
-                          ))}
-                        </select>
+                          onChange={(next) => changeStatusInline(r, next)}
+                        />
                         {r.status === "مرفوض" && (
                           <select
                             value={r.rejectedDeviceLocation || "بالمحل"}
@@ -625,18 +616,10 @@ export default function RepairsPage() {
 
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <div className="flex gap-2">
-                  <select
+                  <StatusSelect
                     value={r.status}
-                    onChange={(e) => changeStatusInline(r, e.target.value)}
-                    className="px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-700"
-                    aria-label={`تغيير حالة الصيانة رقم ${r.repairId}`}
-                  >
-                    {statusOptions.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(next) => changeStatusInline(r, next)}
+                  />
                   {r.status === "مرفوض" && (
                     <select
                       value={r.rejectedDeviceLocation || "بالمحل"}

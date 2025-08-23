@@ -7,6 +7,7 @@ import useAuthStore from "../auth/authStore";
 import formatDate from "../../utils/formatDate";
 import statusOptions from "../../utils/statusOptions";
 import DeliveryModal from "../../components/DeliveryModal";
+import StatusSelect from "../../components/StatusSelect";
 
 export default function EditRepairPage() {
   const { id } = useParams();
@@ -268,18 +269,11 @@ export default function EditRepairPage() {
         <div className="grid md:grid-cols-3 gap-3 items-end">
           <div>
             <div className="text-sm opacity-80 mb-1">الحالة</div>
-            <select
+            <StatusSelect
               value={form.status}
-              onChange={(e) => onStatusChange(e.target.value)}
-              className="px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-700"
+              onChange={(v) => onStatusChange(v)}
               disabled={!canEditAll && !isAssigned}
-            >
-              {statusOptions.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
+            />
             {!canEditAll && isAssigned && (
               <div className="text-xs opacity-70 mt-1">
                 عند اختيار “تم التسليم” سيُطلب كلمة السر.
@@ -322,7 +316,7 @@ export default function EditRepairPage() {
           <input
             value={form.customerName}
             onChange={(e) => setField("customerName", e.target.value)}
-            className="inp"
+            className="inp w-full"
             disabled={!canEditAll}
           />
         </Field>
@@ -330,7 +324,7 @@ export default function EditRepairPage() {
           <input
             value={form.phone}
             onChange={(e) => setField("phone", e.target.value)}
-            className="inp"
+            className="inp w-full"
             disabled={!canEditAll}
           />
         </Field>
@@ -338,7 +332,7 @@ export default function EditRepairPage() {
           <input
             value={form.deviceType}
             onChange={(e) => setField("deviceType", e.target.value)}
-            className="inp"
+            className="inp w-full"
             disabled={!canEditAll}
           />
         </Field>
@@ -346,7 +340,7 @@ export default function EditRepairPage() {
           <input
             value={form.color}
             onChange={(e) => setField("color", e.target.value)}
-            className="inp"
+            className="inp w-full"
             disabled={!canEditAll}
           />
         </Field>
@@ -354,7 +348,7 @@ export default function EditRepairPage() {
           <input
             value={form.issue}
             onChange={(e) => setField("issue", e.target.value)}
-            className="inp"
+            className="inp w-full"
             disabled={!canEditAll}
           />
         </Field>
@@ -363,7 +357,7 @@ export default function EditRepairPage() {
             type="number"
             value={form.price}
             onChange={(e) => setField("price", e.target.value)}
-            className="inp"
+            className="inp w-full"
             disabled={!canEditAll}
           />
         </Field>
@@ -372,7 +366,7 @@ export default function EditRepairPage() {
             type="number"
             value={form.finalPrice}
             onChange={(e) => setField("finalPrice", e.target.value)}
-            className="inp"
+            className="inp w-full"
             disabled={!canEditAll}
           />
         </Field>
@@ -380,7 +374,7 @@ export default function EditRepairPage() {
           <select
             value={form.technician}
             onChange={(e) => setField("technician", e.target.value)}
-            className="inp"
+            className="inp w-full"
             disabled={!canEditAll}
           >
             <option value="">—</option>
@@ -395,7 +389,7 @@ export default function EditRepairPage() {
           <input
             value={form.notes}
             onChange={(e) => setField("notes", e.target.value)}
-            className="inp"
+            className="inp w-full"
             disabled={!canEditAll}
           />
         </Field>
@@ -524,7 +518,7 @@ export default function EditRepairPage() {
 
 function Field({ label, children }) {
   return (
-    <label className="space-y-1">
+    <label className="space-y-1 p-3 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center gap-2">
       <div className="text-sm opacity-80">{label}</div>
       {children}
       <style>{`.inp{padding:.5rem .75rem;border-radius:.75rem;background:var(--inp-bg,#f3f4f6);}`}</style>
