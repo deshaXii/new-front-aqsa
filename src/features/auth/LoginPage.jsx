@@ -51,21 +51,23 @@ const LoginPage = () => {
 
         {error && <Notification type="error" message={error} />}
 
-        <div className="relative">
-          <InputField
+        <div className="relative flex items-center mb-2">
+          <input
+            className="w-full border-[1px] border-gray-200 p-2 rounded-lg rounded-e-[0]"
             label="اسم المستخدم"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder="ادخل اسم المستخدم"
+            autoComplete="true"
             required
           />
-          <div className="absolute top-8 left-2">
+          <div className="">
             <VoiceInput onText={(text) => setUsername(text)} />
           </div>
         </div>
-
-        <div className="relative">
-          <InputField
+        <div className="relative flex items-center mb-2">
+          <input
+            className="w-full border-[1px] border-gray-200 p-2 rounded-lg rounded-e-[0]"
             label="كلمة المرور"
             type="password"
             value={password}
@@ -73,7 +75,7 @@ const LoginPage = () => {
             placeholder="ادخل كلمة المرور"
             required
           />
-          <div className="absolute top-8 left-2">
+          <div className="">
             <VoiceInput onText={(text) => setPassword(text)} />
           </div>
         </div>

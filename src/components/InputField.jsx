@@ -8,8 +8,9 @@ const InputField = ({
   onChange,
   placeholder,
   required,
+  className,
 }) => (
-  <div className="mb-4 input-field">
+  <div className=" input-field">
     {label && <label className="block mb-1 font-semibold">{label}</label>}
     <input
       type={type}
@@ -18,7 +19,7 @@ const InputField = ({
       onChange={onChange}
       placeholder={placeholder}
       required={required}
-      className="w-full border rounded px-3 py-2 bg-white dark:bg-gray-800 outline-none"
+      className={className}
     />
   </div>
 );

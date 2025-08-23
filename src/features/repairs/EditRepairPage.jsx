@@ -2,7 +2,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import API from "../../lib/api";
-import { getRepair, updateRepair } from "./repairsApi";
+import { getRepair, updateRepair, updateRepairStatus } from "./repairsApi";
 import useAuthStore from "../auth/authStore";
 import formatDate from "../../utils/formatDate";
 import statusOptions from "../../utils/statusOptions";
@@ -163,6 +163,7 @@ export default function EditRepairPage() {
             ? new Date(p.purchaseDate).toISOString()
             : undefined,
         })),
+        // مفيش تعديل حالة هنا (بنعدلها مباشرة بأسفل)
       };
       const updated = await updateRepair(id, payload);
       alert("تم حفظ التعديلات");
@@ -174,27 +175,58 @@ export default function EditRepairPage() {
     }
   }
 
-  function onStatusChange(value) {
+  async function onStatusChange(value) {
+    if (!canEditAll && !isAssigned) return;
+
     if (value === "تم التسليم") {
-      // افتح مودال التسليم
       const needPw = !canEditAll && isAssigned;
       setRequirePassword(needPw);
       setDeliverOpen(true);
-    } else {
-      // للحالات الأخرى: لو معاك صلاحيات كاملة نحدث مباشرة هنا
-      // (أو سيبها من صفحة التفاصيل/الرئيسية)
-      setField("status", value);
+      return;
+    }
+
+    try {
+      const body = { status: value };
+      if (!canEditAll && isAssigned) {
+        const password = window.prompt("ادخل كلمة السر لتأكيد تغيير الحالة");
+        if (!password) return;
+        body.password = password;
+      }
+      const updated = await updateRepairStatus(id, body);
+      setRepair(updated);
+      setField("status", updated.status || value);
+      setField("deliveryDate", updated.deliveryDate || "");
+      // لو اتحولت لمرفوض هنسيب اختيار المكان للسلكت أدناه
+    } catch (e) {
+      alert(e?.response?.data?.message || "فشل تغيير الحالة");
+    }
+  }
+
+  async function changeRejectedLocation(loc) {
+    try {
+      const body = { status: "مرفوض", rejectedDeviceLocation: loc };
+      if (!canEditAll && isAssigned) {
+        const password = window.prompt(
+          "ادخل كلمة السر لتأكيد تغيير مكان الجهاز"
+        );
+        if (!password) return;
+        body.password = password;
+      }
+      const updated = await updateRepairStatus(id, body);
+      setRepair(updated);
+      setField("rejectedDeviceLocation", updated.rejectedDeviceLocation || loc);
+      setField("deliveryDate", updated.deliveryDate || "");
+    } catch (e) {
+      alert(e?.response?.data?.message || "فشل تحديث مكان الجهاز");
     }
   }
 
   async function submitDelivery(payload) {
     try {
-      // نستخدم updateRepair لأننا في صفحة التعديل
       const body = { status: "تم التسليم", ...payload };
       await updateRepair(id, body);
       setDeliverOpen(false);
       alert("تم التسليم بنجاح");
-      // حدّث العرض
       const r = await getRepair(id);
       setRepair(r);
       setField("status", r.status || "تم التسليم");
@@ -253,7 +285,29 @@ export default function EditRepairPage() {
                 عند اختيار “تم التسليم” سيُطلب كلمة السر.
               </div>
             )}
+
+            {/* خانة مكان الجهاز تظهر فقط عند الرفض */}
+            {form.status === "مرفوض" && (
+              <div className="mt-2">
+                <div className="text-sm opacity-80 mb-1">
+                  مكان الجهاز عند الرفض
+                </div>
+                <select
+                  value={form.rejectedDeviceLocation || "بالمحل"}
+                  onChange={(e) => changeRejectedLocation(e.target.value)}
+                  className="px-3 py-2 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200"
+                  disabled={!canEditAll && !isAssigned}
+                >
+                  <option value="بالمحل">بالمحل</option>
+                  <option value="مع العميل">مع العميل</option>
+                </select>
+                <div className="text-xs opacity-70 mt-1">
+                  اختيار "مع العميل" يسجّل وقت التسليم تلقائيًا.
+                </div>
+              </div>
+            )}
           </div>
+
           <Info label="تاريخ الإنشاء" value={formatDate(form.createdAt)} />
           <Info
             label="تاريخ التسليم"
@@ -347,7 +401,7 @@ export default function EditRepairPage() {
         </Field>
       </section>
 
-      {/* قطع الغيار الحالية (للإدارة العامة فقط هنا؛ التسليم له مودال منفصل) */}
+      {/* قطع الغيار */}
       <section className="p-3 rounded-xl bg-white dark:bg-gray-800">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold">قطع الغيار</h2>

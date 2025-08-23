@@ -21,6 +21,8 @@ export default function MainLayout() {
     user?.permissions?.adminOverride ||
     user?.permissions?.accessAccounts;
 
+  console.log("user: ", user?.permissions);
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [theme, setTheme] = useState(
@@ -298,7 +300,10 @@ function UserMenu({ user, onLogout }) {
           className="absolute left-0 top-12 w-56 p-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-lg"
           role="menu"
         >
-          <Link to="/profile" className="menu-item">
+          <Link
+            to={`/technicians/${user?.id || user?._id}/profile`}
+            className="menu-item"
+          >
             <IconUser /> الملف الشخصي
           </Link>
           <Link to="/chat" className="menu-item">

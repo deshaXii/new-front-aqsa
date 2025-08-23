@@ -60,17 +60,29 @@ export default function AccountsPage() {
       netCash: Number(sum.net || 0),
     };
 
-    const perTechnician = (sum.perTechnician || []).map((t) => ({
-      techId: t.technician || t.techId || "—",
-      techName: techMapArg?.[t.technician] || t.techName || "—",
-      deliveredCount:
-        typeof t.deliveredCount === "number" ? t.deliveredCount : "—",
-      netProfit: Number(
-        typeof t.netProfit === "number" ? t.netProfit : t.profit || 0
-      ),
-      techShare: Number(t.techShare || 0),
-      shopShare: Number(t.shopShare || 0),
-    }));
+    const perTechnician = (sum.perTechnician || []).map((t) => {
+      // يدعم: technician كـ ObjectId نصّي أو كائن فيه _id/name
+      const id = String(t?.technician?._id ?? t?.technician ?? t?.techId ?? "");
+      const nameFromMap = id && techMapArg ? techMapArg[id] : "";
+      const nameFallback = t?.techName || t?.technician?.name || "";
+      const deliveredCount =
+        typeof t?.deliveredCount === "number"
+          ? t.deliveredCount
+          : typeof t?.count === "number"
+          ? t.count
+          : "—";
+
+      return {
+        techId: id || "—",
+        techName: nameFromMap || nameFallback || "—",
+        deliveredCount,
+        netProfit: Number(
+          typeof t?.netProfit === "number" ? t.netProfit : t?.profit || 0
+        ),
+        techShare: Number(t?.techShare || 0),
+        shopShare: Number(t?.shopShare || 0),
+      };
+    });
 
     return { totals, perTechnician, transactions: txs };
   }
@@ -125,6 +137,8 @@ export default function AccountsPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [techMap]);
+
+  console.log(summary);
 
   return (
     <div className="space-y-4">
@@ -233,7 +247,13 @@ export default function AccountsPage() {
                     key={i}
                     className="odd:bg-gray-50 dark:odd:bg-gray-700/40"
                   >
-                    <Td>{t.techName || t.techId}</Td>
+                    <Td>
+                      {(t.techId && techMap[t.techId]) ||
+                        t.techName ||
+                        t.techId ||
+                        "—"}
+                    </Td>
+
                     <Td>{t.deliveredCount ?? "—"}</Td>
                     <Td>{Math.round(t.netProfit)}</Td>
                     <Td>{Math.round(t.techShare)}</Td>

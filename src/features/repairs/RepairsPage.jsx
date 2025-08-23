@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import API from "../../lib/api";
 import { listRepairs, updateRepairStatus } from "./repairsApi";
 import formatDate from "../../utils/formatDate";
@@ -33,6 +33,12 @@ function ymdLocal(d) {
 
 export default function RepairsPage() {
   const { user } = useAuthStore();
+  const navigation = useNavigate();
+  useEffect(() => {
+    if (!user) {
+      navigation(0);
+    }
+  }, [user]);
 
   const isAdmin = user?.role === "admin" || user?.permissions?.adminOverride;
   const canViewAll =
@@ -174,15 +180,8 @@ export default function RepairsPage() {
         return;
       }
       if (nextStatus === "مرفوض") {
-        const ans = window.prompt(
-          "مكان الجهاز؟ اكتب: بالمحل أو مع العميل",
-          "بالمحل"
-        );
-        if (!ans) return;
-        await updateRepairStatus(r._id, {
-          status: nextStatus,
-          rejectedDeviceLocation: ans,
-        });
+        // مجرد تغيير الحالة الآن — قيمة المكان هتتحدد من الـ select المخصص اللي هيظهر
+        await updateRepairStatus(r._id, { status: nextStatus });
         await load();
         return;
       }
@@ -199,6 +198,28 @@ export default function RepairsPage() {
       await load();
     } catch (e) {
       alert(e?.response?.data?.message || "حدث خطأ أثناء تحديث الحالة");
+    }
+  }
+
+  async function changeRejectedLocation(r, loc) {
+    try {
+      const isAssigned =
+        r.technician &&
+        (r.technician._id || r.technician) === (user?.id || user?._id);
+
+      const body = { status: "مرفوض", rejectedDeviceLocation: loc };
+      if (!canEditAll && isAssigned) {
+        const password = window.prompt(
+          "ادخل كلمة السر لتأكيد تغيير مكان الجهاز"
+        );
+        if (!password) return;
+        body.password = password;
+      }
+
+      await updateRepairStatus(r._id, body);
+      await load();
+    } catch (e) {
+      alert(e?.response?.data?.message || "حدث خطأ أثناء تحديث مكان الجهاز");
     }
   }
 
@@ -436,7 +457,7 @@ export default function RepairsPage() {
               <Th>العطل</Th>
               <Th>اللون</Th>
               <Th>الفني</Th>
-              <Th>المستلم/المسجّل</Th>
+              <Th>المستلم</Th>
               <Th>الحالة</Th>
               <Th>السعر</Th>
               <Th>تاريخ الإنشاء</Th>
@@ -489,7 +510,7 @@ export default function RepairsPage() {
                     <Td>{r?.createdBy?.name || r?.recipient?.name || "—"}</Td>
                     <Td>
                       <div className="flex items-center gap-2">
-                        <StatusPill s={r.status} />
+                        {/* <StatusPill s={r.status} /> */}
                         <select
                           value={r.status}
                           onChange={(e) =>
@@ -504,6 +525,20 @@ export default function RepairsPage() {
                             </option>
                           ))}
                         </select>
+                        {r.status === "مرفوض" && (
+                          <select
+                            value={r.rejectedDeviceLocation || "بالمحل"}
+                            onChange={(e) =>
+                              changeRejectedLocation(r, e.target.value)
+                            }
+                            className="px-2 py-1 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200 mt-1"
+                            aria-label={`مكان الجهاز للصيانة رقم ${r.repairId}`}
+                            title="مكان الجهاز عند الرفض"
+                          >
+                            <option value="بالمحل">بالمحل</option>
+                            <option value="مع العميل">مع العميل</option>
+                          </select>
+                        )}
                       </div>
                     </Td>
                     <Td>{typeof r.price === "number" ? r.price : "—"}</Td>
@@ -589,18 +624,33 @@ export default function RepairsPage() {
               </div>
 
               <div className="mt-3 flex flex-wrap items-center gap-2">
-                <select
-                  value={r.status}
-                  onChange={(e) => changeStatusInline(r, e.target.value)}
-                  className="px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-700"
-                  aria-label={`تغيير حالة الصيانة رقم ${r.repairId}`}
-                >
-                  {statusOptions.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex gap-2">
+                  <select
+                    value={r.status}
+                    onChange={(e) => changeStatusInline(r, e.target.value)}
+                    className="px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-700"
+                    aria-label={`تغيير حالة الصيانة رقم ${r.repairId}`}
+                  >
+                    {statusOptions.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                  {r.status === "مرفوض" && (
+                    <select
+                      value={r.rejectedDeviceLocation || "بالمحل"}
+                      onChange={(e) =>
+                        changeRejectedLocation(r, e.target.value)
+                      }
+                      className="px-2 py-1 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200"
+                      aria-label="مكان الجهاز عند الرفض"
+                    >
+                      <option value="بالمحل">بالمحل</option>
+                      <option value="مع العميل">مع العميل</option>
+                    </select>
+                  )}
+                </div>
                 <Link
                   to={`/repairs/${r._id}`}
                   className="px-3 py-1 rounded-lg bg-gray-200 dark:bg-gray-700"

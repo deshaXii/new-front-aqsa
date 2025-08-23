@@ -33,7 +33,7 @@ const VoiceInput = ({ onText, lang = "ar-EG" }) => {
       title="تسجيل صوتي"
       className={`ml-2 p-2 rounded ${
         listening ? "bg-green-500" : "bg-gray-300"
-      } hover:bg-gray-400`}
+      } hover:bg-gray-400 rounded-s-[0]`}
     >
       🎤
     </button>

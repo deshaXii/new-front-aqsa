@@ -50,18 +50,19 @@ export default function SingleRepairPage() {
   function onStatusChange(nextStatus) {
     if (!repair) return;
     if (nextStatus === "تم التسليم") {
-      // افتح مودال التسليم (مع طلب باسورد لو الفني المعيَّن بدون صلاحيات كاملة)
       setRequirePassword(!canEditAll && isAssigned);
       setDeliverOpen(true);
       return;
     }
     if (nextStatus === "مرفوض") {
-      const place = window.prompt(
-        "مكان الجهاز؟ اكتب: بالمحل أو مع العميل",
-        "بالمحل"
-      );
-      if (!place) return;
-      changeStatus({ status: nextStatus, rejectedDeviceLocation: place });
+      // نغيّر الحالة فقط الآن، والمكان من السلكت أسفلها
+      const body = { status: "مرفوض" };
+      if (!canEditAll && isAssigned) {
+        const password = window.prompt("ادخل كلمة السر لتأكيد تغيير الحالة");
+        if (!password) return;
+        body.password = password;
+      }
+      changeStatus(body);
       return;
     }
     // باقي الحالات
@@ -83,6 +84,23 @@ export default function SingleRepairPage() {
     }
   }
 
+  async function changeRejectedLocation(loc) {
+    try {
+      const body = { status: "مرفوض", rejectedDeviceLocation: loc };
+      if (!canEditAll && isAssigned) {
+        const password = window.prompt(
+          "ادخل كلمة السر لتأكيد تغيير مكان الجهاز"
+        );
+        if (!password) return;
+        body.password = password;
+      }
+      const updated = await updateRepairStatus(id, body);
+      setRepair(updated);
+    } catch (e) {
+      alert(e?.response?.data?.message || "فشل تحديث مكان الجهاز");
+    }
+  }
+
   async function submitDelivery(payload) {
     try {
       // payload = { finalPrice, parts, password? }
@@ -92,8 +110,6 @@ export default function SingleRepairPage() {
       });
       setRepair(updated);
       setDeliverOpen(false);
-      // optional: ارجع للّست أو ابقَ في نفس الصفحة
-      // nav("/repairs"); // لو عايز ترجع للصفحة الرئيسية بعد التسليم
     } catch (e) {
       alert(e?.response?.data?.message || "خطأ أثناء إتمام التسليم");
     }
@@ -148,13 +164,30 @@ export default function SingleRepairPage() {
                 عند اختيار “تم التسليم” سيُطلب كلمة السر.
               </div>
             )}
+
+            {/* خانة مكان الجهاز تظهر فقط عند الرفض */}
+            {repair.status === "مرفوض" && (
+              <div className="mt-2">
+                <div className="text-sm opacity-80 mb-1">
+                  مكان الجهاز عند الرفض
+                </div>
+                <select
+                  value={repair.rejectedDeviceLocation || "بالمحل"}
+                  onChange={(e) => changeRejectedLocation(e.target.value)}
+                  className="px-3 py-2 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200"
+                  disabled={!canEditAll && !isAssigned}
+                >
+                  <option value="بالمحل">بالمحل</option>
+                  <option value="مع العميل">مع العميل</option>
+                </select>
+                <div className="text-xs opacity-70 mt-1">
+                  اختيار "مع العميل" يسجّل وقت التسليم تلقائيًا.
+                </div>
+              </div>
+            )}
           </label>
 
           <Info label="تاريخ الإنشاء" value={formatDate(repair.createdAt)} />
-          <Info
-            label="تاريخ التسليم"
-            value={repair.deliveryDate ? formatDate(repair.deliveryDate) : "—"}
-          />
           <Info label="الفني" value={repair?.technician?.name || "—"} />
         </div>
       </section>
@@ -216,6 +249,10 @@ export default function SingleRepairPage() {
         )}
       </section>
 
+      {isAdmin && repair?.logs?.length > 0 && (
+        <ActivityLog logs={repair.logs} />
+      )}
+
       {/* مودال التسليم */}
       <DeliveryModal
         open={deliverOpen}
@@ -236,4 +273,111 @@ function Info({ label, value }) {
       <div className="font-semibold break-words">{value}</div>
     </div>
   );
+}
+
+function ActivityLog({ logs = [] }) {
+  const ordered = [...logs].sort(
+    (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+  );
+
+  return (
+    <section className="mt-4 p-3 rounded-2xl bg-white dark:bg-gray-800 shadow-sm">
+      <h2 className="font-semibold mb-3">سجلّ العمليات</h2>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-right">
+              <Th>الوقت</Th>
+              <Th>المستخدم</Th>
+              <Th>الإجراء</Th>
+              <Th>التفاصيل</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {ordered.map((l) => (
+              <tr
+                key={l._id}
+                className="odd:bg-gray-50 dark:odd:bg-gray-700/40 align-top"
+              >
+                <Td>{formatDate(l.createdAt)}</Td>
+                <Td>{l?.changedBy?.name || "—"}</Td>
+                <Td>
+                  {l.action === "create"
+                    ? "إنشاء"
+                    : l.action === "update"
+                    ? "تعديل"
+                    : l.action === "delete"
+                    ? "حذف"
+                    : l.action === "part_paid"
+                    ? "دفع قطعة غيار"
+                    : l.action === "part_unpaid"
+                    ? "إلغاء دفع قطعة غيار"
+                    : l.action || "—"}
+                </Td>
+                <Td>
+                  {l.details && <div className="mb-1">{l.details}</div>}
+                  {Array.isArray(l.changes) && l.changes.length > 0 && (
+                    <ul className="list-disc pr-4 space-y-1">
+                      {l.changes.map((c, i) => (
+                        <li key={i}>
+                          <span className="opacity-70">الحقل:</span>{" "}
+                          <span className="font-medium">
+                            {friendlyField(c.field)}
+                          </span>{" "}
+                          <span className="opacity-70">من</span>{" "}
+                          <code className="px-1 rounded bg-gray-100 dark:bg-gray-700">
+                            {renderVal(c.from)}
+                          </code>{" "}
+                          <span className="opacity-70">إلى</span>{" "}
+                          <code className="px-1 rounded bg-gray-100 dark:bg-gray-700">
+                            {renderVal(c.to)}
+                          </code>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </Td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+function friendlyField(key = "") {
+  const map = {
+    status: "الحالة",
+    price: "السعر",
+    finalPrice: "السعر النهائي",
+    color: "اللون",
+    deviceType: "نوع الجهاز",
+    issue: "العطل",
+    technician: "الفني",
+    deliveryDate: "تاريخ التسليم",
+    partPaid: "دفع قطعة الغيار", // 👈 جديد
+    rejectedDeviceLocation: "مكان الجهاز عند الرفض",
+  };
+  return map[key] || key;
+}
+function renderVal(v) {
+  if (v === null || v === undefined || v === "") return "—";
+  if (typeof v === "string" || typeof v === "number") return String(v);
+  try {
+    return JSON.stringify(v);
+  } catch {
+    return "—";
+  }
+}
+function Th({ children }) {
+  return (
+    <th className="p-2 text-xs font-semibold text-gray-600 dark:text-gray-300 border-b">
+      {children}
+    </th>
+  );
+}
+function Td({ children }) {
+  return <td className="p-2">{children}</td>;
 }
