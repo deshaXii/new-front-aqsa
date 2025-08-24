@@ -6,11 +6,16 @@ import { createRepair } from "./repairsApi";
 import formatDate from "../../utils/formatDate";
 import InputField from "../../components/InputField";
 import VoiceInput from "../../components/VoiceInput";
+import QrAfterCreateModal from "../../components/QrAfterCreateModal";
 
 export default function NewRepairPage() {
   const nav = useNavigate();
   const [techs, setTechs] = useState([]);
   const [saving, setSaving] = useState(false);
+
+  const [qrOpen, setQrOpen] = useState(false);
+  const [trackingUrl, setTrackingUrl] = useState("");
+  const [createdRepair, setCreatedRepair] = useState(null);
 
   const [form, setForm] = useState({
     customerName: "",
@@ -66,7 +71,8 @@ export default function NewRepairPage() {
     }));
   }
 
-  async function submit() {
+  async function submit(e) {
+    e.preventDefault();
     if (!form.customerName || !form.deviceType) {
       alert("الرجاء إدخال اسم العميل ونوع الجهاز");
       return;
@@ -88,10 +94,21 @@ export default function NewRepairPage() {
             : undefined,
         })),
       };
+
       const created = await createRepair(payload);
-      alert(`تم إنشاء الصيانة #${created.repairId}`);
-      nav(`/repairs/${created._id}`);
+      // السيرفر بيرجع publicTrackingUrl
+      console.log("created ", created);
+
+      const token = created?.publicTracking?.token;
+      const url = token ? `${window.location.origin}/t/${token}` : "";
+
+      setCreatedRepair(created);
+      setTrackingUrl(url);
+      console.log(url);
+      setQrOpen(true);
+      // nav(`/repairs/${created._id}`);
     } catch (e) {
+      console.log(e);
       alert(e?.response?.data?.message || "حدث خطأ");
     } finally {
       setSaving(false);
@@ -292,7 +309,20 @@ export default function NewRepairPage() {
           </table>
         )}
       </section>
-
+      <QrAfterCreateModal
+        open={qrOpen}
+        onClose={() => {
+          setQrOpen(false);
+          if (createdRepair?._id) {
+            // خليك على صفحة التفاصيل مباشرة
+            nav(`/repairs/${createdRepair._id}`);
+          } else {
+            nav("/repairs");
+          }
+        }}
+        trackingUrl={trackingUrl}
+        repair={createdRepair}
+      />
       <div className="flex items-center gap-2">
         <button
           onClick={submit}
@@ -314,6 +344,20 @@ function Field({ label, children }) {
       <style>
         {`.inp{padding:.5rem .75rem;border-radius:.75rem;background:var(--inp-bg,#f3f4f6);}`}
       </style>
+    </label>
+  );
+}
+function Inp({ label, v, onChange, type = "text", required }) {
+  return (
+    <label className="space-y-1">
+      <div className="text-sm opacity-80">{label}</div>
+      <input
+        value={v}
+        onChange={(e) => onChange(e.target.value)}
+        type={type}
+        required={required}
+        className="px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-700 w-full"
+      />
     </label>
   );
 }

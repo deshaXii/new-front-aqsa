@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import API from "../../lib/api";
-import { listRepairs, updateRepairStatus } from "./repairsApi";
+import { listRepairs, updateRepairStatus, updateRepair } from "./repairsApi";
 import formatDate from "../../utils/formatDate";
 import statusOptions from "../../utils/statusOptions";
 import useAuthStore from "../auth/authStore";
@@ -162,10 +162,27 @@ export default function RepairsPage() {
 
   async function submitDeliver(payload) {
     try {
-      await updateRepairStatus(deliverTarget._id, {
+      // توحيد شكل الأجزاء + التواريخ
+      const parts = (payload.parts || []).map((p) => ({
+        name: p.name || "",
+        cost: p.cost ? Number(p.cost) : 0,
+        supplier: p.supplier || undefined,
+        source: p.source || undefined,
+        purchaseDate: p.purchaseDate
+          ? new Date(p.purchaseDate).toISOString()
+          : undefined,
+      }));
+
+      const body = {
         status: "تم التسليم",
-        ...payload,
-      });
+        finalPrice: payload.finalPrice ? Number(payload.finalPrice) : 0,
+        parts,
+        ...(payload.password ? { password: payload.password } : {}),
+      };
+
+      // مهم: استخدم updateRepair بدل updateRepairStatus
+      await updateRepair(deliverTarget._id, body);
+
       setDeliverOpen(false);
       setDeliverTarget(null);
       await load();
@@ -315,7 +332,8 @@ export default function RepairsPage() {
   return (
     <div className="space-y-4">
       {/* رأس الصفحة */}
-      <header className="flex items-center justify-between sticky top-0 z-20 bg-gradient-to-b from-white/80 to-white/0 dark:from-gray-900/80 backdrop-blur py-2">
+      {/* sticky top-0 z-20 */}
+      <header className="flex items-center justify-between  bg-gradient-to-b from-white/80 to-white/0 dark:from-gray-900/80 backdrop-blur py-2">
         <h1 className="text-xl font-bold">الصيانات</h1>
         <div className="flex items-center gap-2">
           <button
@@ -458,11 +476,11 @@ export default function RepairsPage() {
               <Th>العطل</Th>
               <Th>اللون</Th>
               <Th>الفني</Th>
-              <Th>المستلم</Th>
+              {/* <Th>المستلم</Th> */}
               <Th>الحالة</Th>
               <Th>السعر</Th>
               <Th>تاريخ الإنشاء</Th>
-              <Th>تاريخ التسليم</Th>
+              {/* <Th>تاريخ التسليم</Th> */}
               <Th>إجراءات</Th>
             </tr>
           </thead>
@@ -508,7 +526,7 @@ export default function RepairsPage() {
                     </Td>
                     <Td>{r.color || "—"}</Td>
                     <Td>{r?.technician?.name || "—"}</Td>
-                    <Td>{r?.createdBy?.name || r?.recipient?.name || "—"}</Td>
+                    {/* <Td>{r?.createdBy?.name || r?.recipient?.name || "—"}</Td> */}
                     <Td>
                       <div className="flex items-center gap-2">
                         {/* <StatusPill s={r.status} /> */}
@@ -532,9 +550,11 @@ export default function RepairsPage() {
                         )}
                       </div>
                     </Td>
-                    <Td>{typeof r.price === "number" ? r.price : "—"}</Td>
+                    <Td>
+                      {typeof r.finalPrice === "number" ? r.finalPrice : "—"}
+                    </Td>
                     <Td>{formatDate(r.createdAt)}</Td>
-                    <Td>{r.deliveryDate ? formatDate(r.deliveryDate) : "—"}</Td>
+                    {/* <Td>{r.deliveryDate ? formatDate(r.deliveryDate) : "—"}</Td> */}
                     <Td>
                       <div className="flex items-center gap-2">
                         <Link
@@ -673,11 +693,7 @@ export default function RepairsPage() {
           setDeliverTarget(null);
         }}
         onSubmit={submitDeliver}
-        initialFinalPrice={
-          deliverTarget
-            ? deliverTarget.finalPrice ?? deliverTarget.price ?? 0
-            : 0
-        }
+        initialFinalPrice={deliverTarget ? deliverTarget.finalPrice ?? 0 : 0}
         initialParts={deliverTarget ? deliverTarget.parts || [] : []}
         requirePassword={deliverRequirePassword}
       />
@@ -694,7 +710,7 @@ function Th({ children }) {
   );
 }
 function Td({ children, className = "" }) {
-  return <td className={`p-2 align-top ${className}`}>{children}</td>;
+  return <td className={`p-2 align-center ${className}`}>{children}</td>;
 }
 function Info({ label, value }) {
   return (

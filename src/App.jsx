@@ -5,6 +5,7 @@ import AuthLayout from "./layouts/AuthLayout";
 import LoginPage from "./features/auth/LoginPage";
 import ProtectedRoute from "./features/auth/ProtectedRoute";
 import PublicOnlyRoute from "./features/auth/PublicOnlyRoute";
+import PublicTrackingPage from "./features/public/PublicTrackingPage";
 
 import RepairsPage from "./features/repairs/RepairsPage";
 import NewRepairPage from "./features/repairs/NewRepairPage";
@@ -28,6 +29,7 @@ import RequirePermRoute from "./features/auth/RequirePermRoute";
 export default function App() {
   return (
     <Routes>
+      <Route path="/t/:token" element={<PublicTrackingPage />} />
       <Route element={<PublicOnlyRoute />}>
         <Route path="/login" element={<LoginPage />} />
       </Route>

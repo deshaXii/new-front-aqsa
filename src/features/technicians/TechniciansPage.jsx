@@ -243,7 +243,7 @@ export default function TechniciansPage() {
               <tr className="text-right">
                 <th className="p-2">الاسم</th>
                 <th className="p-2">@المستخدم</th>
-                <th className="p-2">نسبة %</th>
+                {/* <th className="p-2">نسبة %</th> */}
                 <th className="p-2">صلاحيات</th>
                 <th className="p-2">إجراءات</th>
               </tr>
@@ -299,7 +299,7 @@ export default function TechniciansPage() {
                   </td>
 
                   {/* النسبة */}
-                  <td className="p-2 w-28">
+                  {/* <td className="p-2 w-28">
                     {t.editing ? (
                       <input
                         type="number"
@@ -314,7 +314,7 @@ export default function TechniciansPage() {
                     ) : (
                       "—"
                     )}
-                  </td>
+                  </td> */}
 
                   {/* الصلاحيات + تغيير كلمة السر عند التحرير */}
                   <td className="p-2">

@@ -352,7 +352,7 @@ export default function EditRepairPage() {
             disabled={!canEditAll}
           />
         </Field>
-        <Field label="السعر المبدئي">
+        <Field label="السعر المتفق عليه">
           <input
             type="number"
             value={form.price}
@@ -361,7 +361,7 @@ export default function EditRepairPage() {
             disabled={!canEditAll}
           />
         </Field>
-        <Field label="السعر النهائي (اختياري)">
+        <Field label="السعر النهائي">
           <input
             type="number"
             value={form.finalPrice}

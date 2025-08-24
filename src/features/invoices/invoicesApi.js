@@ -1,7 +1,7 @@
 import axios from "axios";
 import useAuthStore from "../auth/authStore";
 
-const BASE_URL = "https://aqsa-serverless.vercel.app/api/invoices";
+const BASE_URL = "https://new-front-aqsa.vercel.app/api/invoices";
 
 export const fetchDailyProfits = async (date) => {
   const { token } = useAuthStore.getState();
