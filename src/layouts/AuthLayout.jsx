@@ -1,6 +1,6 @@
 import { Outlet } from "react-router-dom";
 import InstallPwaButton from "../components/InstallPwaButton";
-import EnablePushButton from "../../components/EnablePushButton";
+import EnablePushButton from "../components/EnablePushButton";
 
 const AuthLayout = () => {
   return (
