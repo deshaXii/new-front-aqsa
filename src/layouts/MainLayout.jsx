@@ -13,7 +13,7 @@ import NotificationsLive from "../realtime/NotificationsLive";
 import InstallPwaButton from "../components/InstallPwaButton";
 import EnablePushButton from "../components/EnablePushButton";
 import IosA2hsHint from "../components/IosA2hsHint";
-import DesktopInstallButton from "@/components/DesktopInstallButton";
+import DesktopInstallButton from "../components/DesktopInstallButton";
 
 export default function MainLayout() {
   const { user, logout } = useAuthStore();
