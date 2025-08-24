@@ -4,8 +4,8 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App.jsx";
 import "./index.css";
 import { registerSW } from "virtual:pwa-register";
-import { registerSW } from "./swRegistration";
-registerSW();
+import { registerSWW } from "./swRegistration";
+registerSWW();
 registerSW({ immediate: true });
 
 ReactDOM.createRoot(document.getElementById("root")).render(
