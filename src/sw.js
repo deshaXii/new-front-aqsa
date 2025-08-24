@@ -75,26 +75,46 @@ setDefaultHandler(new StaleWhileRevalidate());
 
 // ===== Web Push: عرض الإشعار وفتح الرابط =====
 self.addEventListener("push", (event) => {
-  let data = {};
+  let payload = {};
   try {
-    data = event.data?.json?.() || {};
+    payload = event.data ? event.data.json() : {};
   } catch {
-    /* ignore */
+    try {
+      payload = JSON.parse(event.data.text());
+    } catch {}
   }
-  const title = data.title || "تنبيه";
+
+  const title = payload.title || "إشعار جديد";
   const options = {
-    body: data.body || "",
-    icon: "/icons/icon-192.png",
-    badge: "/icons/icon-192.png",
-    data: { url: data.url || "/" },
-    dir: "rtl",
-    lang: "ar",
+    body: payload.body || "",
+    icon: payload.icon || "/icons/icon-192.png",
+    badge: payload.badge || "/icons/icon-192.png",
+    tag: payload.tag || "notif",
+    renotify: true,
+    requireInteraction: !!payload.requireInteraction,
+    vibrate: payload.vibrate || [100, 50, 100],
+    data: payload.data || { url: payload.url || "/notifications" },
+    actions: payload.actions || [],
   };
+
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = event.notification?.data?.url || "/";
-  event.waitUntil(clients.openWindow(url));
+  const url = event.notification?.data?.url || "/notifications";
+
+  event.waitUntil(
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((wins) => {
+        // لو في تبويب مفتوح، فوّكِس عليه
+        const w = wins.find((c) => c.url.includes(self.location.origin));
+        if (w) {
+          w.navigate(url);
+          return w.focus();
+        }
+        return clients.openWindow(url);
+      })
+  );
 });
