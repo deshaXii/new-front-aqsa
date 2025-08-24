@@ -25,47 +25,52 @@ import ChatPage from "./features/chat/ChatPage";
 import DirectChatPage from "./features/chat/DirectChatPage";
 
 import RequirePermRoute from "./features/auth/RequirePermRoute";
+import InstallPwaButton from "../components/InstallPwaButton";
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/t/:token" element={<PublicTrackingPage />} />
-      <Route element={<PublicOnlyRoute />}>
-        <Route path="/login" element={<LoginPage />} />
-      </Route>
+    <>
+      <InstallPwaButton className="ml-2" />
 
-      {/* صفحات محمية */}
-      <Route element={<ProtectedRoute />}>
-        <Route element={<MainLayout />}>
-          <Route index element={<Navigate to="/repairs" replace />} />
-          <Route path="/repairs" element={<RepairsPage />} />
-          <Route path="/repairs/new" element={<NewRepairPage />} />
-          <Route path="/repairs/:id" element={<RepairDetailsPage />} />
-          <Route path="/repairs/:id/edit" element={<EditRepairPage />} />
-          <Route path="/technicians" element={<TechniciansPage />} />
-          <Route
-            path="/technicians/:id/profile"
-            element={<TechnicianProfilePage />}
-          />
-          <Route element={<RequirePermRoute adminOnly />}>
-            <Route path="/invoices" element={<InvoicesPage />} />
-            <Route path="/backup" element={<BackupPage />} />
-          </Route>
-          {/* توحيد اسم الصلاحية */}
-          <Route element={<RequirePermRoute perm="accessAccounts" />}>
-            <Route path="/accounts" element={<AccountsPage />} />
-          </Route>
-          <Route path="/notifications" element={<NotificationsPage />} />
-          <Route element={<RequirePermRoute perm="settings" />}>
-            <Route path="/settings" element={<SettingsPage />} />
-          </Route>
-          <Route path="/chat" element={<ChatPage />} />
-          <Route path="/chat/dm/:userId" element={<DirectChatPage />} />
+      <Routes>
+        <Route path="/t/:token" element={<PublicTrackingPage />} />
+        <Route element={<PublicOnlyRoute />}>
+          <Route path="/login" element={<LoginPage />} />
         </Route>
-      </Route>
 
-      {/* أي مسار غير معروف → إلى repairs (سيتطلب auth) */}
-      <Route path="*" element={<Navigate to="/repairs" replace />} />
-    </Routes>
+        {/* صفحات محمية */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<MainLayout />}>
+            <Route index element={<Navigate to="/repairs" replace />} />
+            <Route path="/repairs" element={<RepairsPage />} />
+            <Route path="/repairs/new" element={<NewRepairPage />} />
+            <Route path="/repairs/:id" element={<RepairDetailsPage />} />
+            <Route path="/repairs/:id/edit" element={<EditRepairPage />} />
+            <Route path="/technicians" element={<TechniciansPage />} />
+            <Route
+              path="/technicians/:id/profile"
+              element={<TechnicianProfilePage />}
+            />
+            <Route element={<RequirePermRoute adminOnly />}>
+              <Route path="/invoices" element={<InvoicesPage />} />
+              <Route path="/backup" element={<BackupPage />} />
+            </Route>
+            {/* توحيد اسم الصلاحية */}
+            <Route element={<RequirePermRoute perm="accessAccounts" />}>
+              <Route path="/accounts" element={<AccountsPage />} />
+            </Route>
+            <Route path="/notifications" element={<NotificationsPage />} />
+            <Route element={<RequirePermRoute perm="settings" />}>
+              <Route path="/settings" element={<SettingsPage />} />
+            </Route>
+            <Route path="/chat" element={<ChatPage />} />
+            <Route path="/chat/dm/:userId" element={<DirectChatPage />} />
+          </Route>
+        </Route>
+
+        {/* أي مسار غير معروف → إلى repairs (سيتطلب auth) */}
+        <Route path="*" element={<Navigate to="/repairs" replace />} />
+      </Routes>
+    </>
   );
 }
