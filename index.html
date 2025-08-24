@@ -21,6 +21,22 @@
 <body class="bg-white dark:bg-gray-900 text-gray-800 dark:text-white">
   <div id="root"></div>
   <script type="module" src="/src/main.jsx"></script>
+  <script>
+    // نخزّن الحدث على window عشان React يقدر يستخدمه بعدين
+    window.__deferredInstallPrompt = null;
+
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault(); // نمنع البانر الافتراضي
+      window.__deferredInstallPrompt = e;
+      // نبعت إشارة للتطبيق (لو محتاج)
+      window.dispatchEvent(new Event("pwa:beforeinstallprompt"));
+    });
+
+    window.addEventListener("appinstalled", () => {
+      window.__deferredInstallPrompt = null;
+      window.dispatchEvent(new Event("pwa:installed"));
+    });
+  </script>
 </body>
 
 </html>

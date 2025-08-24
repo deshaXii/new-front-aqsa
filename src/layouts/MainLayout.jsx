@@ -10,6 +10,10 @@ import {
 import useAuthStore from "../features/auth/authStore";
 import API from "../lib/api";
 import NotificationsLive from "../realtime/NotificationsLive";
+import InstallPwaButton from "../components/InstallPwaButton";
+import EnablePushButton from "../components/EnablePushButton";
+import IosA2hsHint from "../components/IosA2hsHint";
+import DesktopInstallButton from "@/components/DesktopInstallButton";
 
 export default function MainLayout() {
   const { user, logout } = useAuthStore();
@@ -120,6 +124,10 @@ export default function MainLayout() {
       dir="rtl"
       className="flex min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100"
     >
+      <InstallPwaButton />
+      <IosA2hsHint />
+      <EnablePushButton className="ml-2" />
+      <DesktopInstallButton />
       {sidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
