@@ -1,6 +1,7 @@
 // src/features/settings/SettingsPage.jsx
 import { useEffect, useState } from "react";
 import API from "../../lib/api";
+import EnablePushButton from "../../components/EnablePushButton";
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
@@ -80,6 +81,7 @@ export default function SettingsPage() {
           </button>
         </div>
       </section>
+      <EnablePushButton className="ml-2" />
 
       <section className="p-3 rounded-xl bg-white dark:bg-gray-800">
         <h2 className="font-semibold mb-2">نِسَب مخصصة لفنيين</h2>
