@@ -3,7 +3,8 @@ import axios from "axios";
 import useAuthStore from "../auth/authStore";
 
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE || "aqsa-serverless.vercel.app/api",
+  baseURL:
+    import.meta.env.VITE_API_BASE || "https://aqsa-serverless.vercel.app/api",
 });
 
 export const fetchNotifications = async (token) => {
