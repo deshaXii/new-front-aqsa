@@ -1,4 +1,4 @@
-export function registerSW() {
+export function registerSWW() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
       navigator.serviceWorker
